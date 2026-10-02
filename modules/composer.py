@@ -386,13 +386,15 @@ class ShortsComposer:
                 master_clip = AudioFileClip(master_path)
                 opened_audio.append(master_clip)
                 # The mixed wav can end a few ms before total_duration (loudnorm/atrim),
-                # and moviepy 1.0.3 crashes if it reads past the real end of the file.
-                # Clamp the reader just inside the real length (sound itself unchanged).
+                # and moviepy 1.0.3 crashes when it reads past the real end of the file.
+                # NOTE: video.set_duration() also resets the audio duration, so a
+                # subclip alone is not enough - shorten total_duration itself so the
+                # video and audio both stop just inside the real audio length.
+                # (Sound is unchanged; only the last ~0.15s of the video is trimmed.)
                 real_len = float(master_clip.duration or 0)
-                if real_len > 0.2:
-                    final_audio = master_clip.subclip(0, real_len - 0.1)
-                else:
-                    final_audio = master_clip
+                if real_len > 1.0:
+                    total_duration = min(total_duration, real_len - 0.15)
+                final_audio = master_clip
             except Exception as e:
                 print("Pro audio mix failed, using simple mix: " + str(e))
                 voice_track = CompositeAudioClip(voice_clips).set_duration(total_duration)
