@@ -332,6 +332,15 @@ LANGUAGE
 - Narration: natural spoken Hindustani in DEVANAGARI only, understood by both Indian and
   Pakistani viewers. Everyday words, not Sanskritised (say 'दिमाग' not 'मस्तिष्क',
   'ज़िंदगी' not 'जीवन', 'वजह' not 'कारण' when natural).
+- SUPER EASY WORDS: write so that a 10-year-old child understands every single word on first
+  hearing. NO difficult, bookish, shuddh-Hindi or heavy Urdu/Persian words (avoid words like
+  'अत्यंत', 'संभवतः', 'प्रक्रिया', 'अस्तित्व', 'विशाल', 'उत्पन्न', 'मुमकिन', 'निहायत'). Use the
+  simple word people use in daily chat: 'बहुत' (not 'अत्यंत'), 'शायद' (not 'संभवतः'),
+  'बड़ा' (not 'विशाल'), 'बनाना' (not 'उत्पन्न करना'), 'तरीका' (not 'प्रक्रिया').
+- LIGHT ENGLISH MIX: sprinkle easy, everyday English words the way young people really talk
+  (जैसे 'स्पीड', 'पावर', 'टाइम', 'फ़ास्ट', 'सीक्रेट', 'ट्राई', 'सुपर', 'प्लीज़', 'एक्चुअली').
+  About 1 easy English word in every 1-2 scenes is enough - it should feel natural, not forced,
+  and the sentence must stay simple. Still write them in Devanagari only (no Latin letters).
 - ZERO Latin letters and ZERO digits inside narration. Write numbers in Hindi words
   (सौ, हज़ार, पचास प्रतिशत). Any English term must be written in Devanagari the way people say it
   (जैसे 'लेज़र', 'सैटेलाइट').
@@ -375,6 +384,9 @@ CHECKLIST
    if it sounds like an intro, a greeting or a textbook line. The hook must be truthfully paid off.
 3. Every scene: one sentence, 6-10 words, Devanagari only, no digits, no Latin letters, natural
    spoken Hindustani that an Indian and a Pakistani viewer both understand.
+   Replace every difficult / bookish / heavy Hindi or Urdu word with the simple everyday word a
+   10-year-old child knows. Keep a light sprinkle of easy English words written in Devanagari
+   (जैसे 'स्पीड', 'टाइम', 'पावर', 'सीक्रेट') - about one every 1-2 scenes, natural, never forced.
 4. Cut filler. Each scene must add new info. Keep 8-11 scenes, 75-95 words total. Scene 5 must
    work as a re-hook (a flip or escalation).
 5. Last scene: short, natural, no begging for likes. It should make the viewer want to replay or comment.
