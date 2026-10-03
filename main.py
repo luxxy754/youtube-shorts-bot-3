@@ -37,13 +37,8 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 USED_TOPICS_FILE = "used_topics.json"
 
-# Captions: short punchy key-phrase on screen (Roman, so fonts never break).
-# You removed captions earlier, so default is OFF. Set ENABLE_CAPTIONS: '1' in run.yml to enable.
 ENABLE_CAPTIONS = os.getenv("ENABLE_CAPTIONS", "0") == "1"
-# Word-by-word Hinglish captions (different fonts/sizes, spoken word highlighted).
-# When ON it replaces the two caption modes below. Set WORD_CAPTIONS: '0' to turn off.
 WORD_CAPTIONS = os.getenv("WORD_CAPTIONS", "1") == "1"
-# Big text only on the hook scene (+ twist scene). This is what grabs the first 3 seconds.
 HOOK_CAPTION = os.getenv("HOOK_CAPTION", "1") == "1"
 
 client = genai.Client(api_key=GEMINI_API_KEY)
@@ -57,8 +52,6 @@ OUTPUT_DIR = os.path.join(ASSETS_DIR, "final")
 for directory in [TEMP_VIDEO_DIR, TEMP_AUDIO_DIR, SCENE_CLIP_DIR, OUTPUT_DIR]:
     os.makedirs(directory, exist_ok=True)
 
-# Exact-phrase overrides only. The old code did substring matching, so
-# "ant" matched "giant"/"plant" and "bee" matched "been" -> wrong footage.
 KEYWORD_MAP = {
     "brain": "human brain animation",
     "heart": "human heart beating",
@@ -89,9 +82,11 @@ BASE_TAGS = [
 
 
 def get_youtube_channels():
-    """Channel 1 = existing secrets. Channel 2 is OPTIONAL: it is used only when
-    YOUTUBE_REFRESH_TOKEN_2 is set. If CLIENT_ID_2 / CLIENT_SECRET_2 are not set,
-    channel 1's client id/secret are reused. Playlist ids are per-channel."""
+    """
+    Channel 1 = existing secrets.
+    Channel 2 is OPTIONAL: used only when YOUTUBE_REFRESH_TOKEN_2 is set.
+    Har channel ka apna independent pipeline chalega.
+    """
     channels = [{
         "name": "Channel 1",
         "client_id": YOUTUBE_CLIENT_ID,
@@ -129,14 +124,14 @@ def get_optimized_search_query(text):
     return KEYWORD_MAP.get(key, text)
 
 
-def build_scene_voiceovers(scenes):
+def build_scene_voiceovers(scenes, audio_dir):
+    """Har channel ke liye alag audio_dir use hoga, taake files overwrite na hon."""
     paths = []
     for index, scene in enumerate(scenes, start=1):
-        path = os.path.join(TEMP_AUDIO_DIR, f"scene_{index:02d}.mp3")
+        path = os.path.join(audio_dir, f"scene_{index:02d}.mp3")
         if os.path.exists(path):
             os.remove(path)
 
-        # Voice with emotion: slower/deeper on hook and twist, brisk in the middle.
         if index == 1:
             rate, pitch = "+0%", "-3Hz"
         elif index == len(scenes) - 1 and len(scenes) > 4:
@@ -160,13 +155,14 @@ def build_scene_voiceovers(scenes):
     return paths
 
 
-def build_scene_clips(scenes):
-    shutil.rmtree(SCENE_CLIP_DIR, ignore_errors=True)
-    os.makedirs(SCENE_CLIP_DIR, exist_ok=True)
+def build_scene_clips(scenes, clip_dir):
+    """Har channel ke liye alag clip_dir use hoga."""
+    shutil.rmtree(clip_dir, ignore_errors=True)
+    os.makedirs(clip_dir, exist_ok=True)
 
     paths = []
     for index, scene in enumerate(scenes, start=1):
-        target = os.path.join(SCENE_CLIP_DIR, f"scene_{index:02d}.mp4")
+        target = os.path.join(clip_dir, f"scene_{index:02d}.mp4")
         keyword = scene.get("search_keyword") or "nature landscape"
         query = get_optimized_search_query(keyword)
         print(f"Scene {index}: '{query}'")
@@ -240,7 +236,7 @@ def generate_thumbnail(video_path: str, output_path: str, title_text: str):
         print("Thumbnail frame extract nahi ho paya.")
         return None
 
-    safe_title = re.sub(r"[^\x20-\x7E]", "", title_text)  # emoji/Devanagari -> tofu boxes in DejaVu
+    safe_title = re.sub(r"[^\x20-\x7E]", "", title_text)
     safe_title = re.sub(r'[":\'\\\n\r%]', "", safe_title)[:40].strip()
     if not safe_title:
         safe_title = "Amazing Fact"
@@ -284,40 +280,64 @@ def generate_thumbnail(video_path: str, output_path: str, title_text: str):
     return None
 
 
-def main():
-    print("Starting Automated Short Pipeline...")
+def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
+    """
+    Ek channel ke liye poora pipeline chalata hai:
+    script -> voiceover -> clips -> compose -> upload.
+    Har channel ke liye alag temp directories use hoti hain taake
+    parallel/sequential dono cases mein files clash na karein.
+    """
+    name = channel["name"]
+    print(f"\n{'='*60}")
+    print(f"  Starting pipeline for {name}")
+    print(f"{'='*60}\n")
+
+    # Channel-specific temp dirs (avoid overlap between channels)
+    ch_audio_dir = os.path.join(TEMP_AUDIO_DIR, f"channel_{channel_index}")
+    ch_clip_dir = os.path.join(SCENE_CLIP_DIR, f"channel_{channel_index}")
+    ch_output_dir = os.path.join(OUTPUT_DIR, f"channel_{channel_index}")
+    for d in (ch_audio_dir, ch_clip_dir, ch_output_dir):
+        os.makedirs(d, exist_ok=True)
+
     start_time = time.time()
 
-    print("\nGenerating 30-40s Short script (writer + fact-check editor)...")
+    # ---------- 1. Script (unique per channel) ----------
+    print(f"\n[{name}] Generating fresh script...")
     script = generate_script(client, USED_TOPICS_FILE)
     if not script:
-        print("Script generation failed.")
-        notify_telegram("Pipeline failed: script generation returned None")
-        return
+        msg = f"[{name}] Script generation failed."
+        print(msg)
+        notify_telegram(msg)
+        return False
 
     record_history(USED_TOPICS_FILE, script)
     scenes = script["scenes"]
     full_narration = " ".join(s["narration"] for s in scenes)
-    print(f"{len(scenes)} scenes | Hook: {scenes[0]['narration']}")
+    print(f"[{name}] {len(scenes)} scenes | Hook: {scenes[0]['narration']}")
 
-    print("\nGenerating scene-wise Voiceover (Natural Hindi - Madhur)...")
+    # ---------- 2. Voiceover ----------
+    print(f"\n[{name}] Generating voiceovers...")
     try:
-        voice_paths = build_scene_voiceovers(scenes)
+        voice_paths = build_scene_voiceovers(scenes, ch_audio_dir)
     except Exception as e:
-        print(f"Voiceover failed: {e}")
-        notify_telegram(f"Voiceover generation failed: {e}")
-        return
+        msg = f"[{name}] Voiceover failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-    print("\nDownloading a different Stock Video for every scene...")
+    # ---------- 3. Stock clips ----------
+    print(f"\n[{name}] Downloading stock clips...")
     try:
-        clip_paths = build_scene_clips(scenes)
+        clip_paths = build_scene_clips(scenes, ch_clip_dir)
     except Exception as e:
-        print(f"Video download failed: {e}")
-        notify_telegram(f"Video download failed: {e}")
-        return
+        msg = f"[{name}] Video download failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-    print("\nMerging Video & Audio...")
-    composer = ShortsComposer(output_dir=OUTPUT_DIR)
+    # ---------- 4. Compose ----------
+    print(f"\n[{name}] Composing final video...")
+    composer = ShortsComposer(output_dir=ch_output_dir)
 
     bg_music_path = None
     for candidate in [
@@ -325,17 +345,14 @@ def main():
         os.path.join("modules", "bg_music.mp3"),
     ]:
         if os.path.isdir(candidate):
-            files = [
-                f for f in os.listdir(candidate)
-                if f.lower().endswith(".mp3")
-            ]
+            files = [f for f in os.listdir(candidate) if f.lower().endswith(".mp3")]
             if files:
                 bg_music_path = os.path.join(candidate, random.choice(files))
-                print(f"BG music: {bg_music_path}")
+                print(f"[{name}] BG music: {bg_music_path}")
                 break
         elif os.path.isfile(candidate):
             bg_music_path = candidate
-            print(f"BG music: {bg_music_path}")
+            print(f"[{name}] BG music: {bg_music_path}")
             break
 
     if WORD_CAPTIONS:
@@ -349,91 +366,93 @@ def main():
             captions[-2] = scenes[-2].get("caption", "")
     else:
         captions = None
+
+    output_filename = f"final_short_{channel_index}.mp4"
     try:
         final_video_path = composer.create_multi_scene_short(
             clip_paths=clip_paths,
             voiceover_paths=voice_paths,
-            output_filename="final_short.mp4",
+            output_filename=output_filename,
             bg_music_path=bg_music_path,
             add_cta=False,
             scene_narrations=captions,
             word_scenes=scenes if WORD_CAPTIONS else None,
         )
     except Exception as e:
-        print(f"Composition failed: {e}")
-        notify_telegram(f"Video composition failed: {e}")
-        return
+        msg = f"[{name}] Composition failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
 
     if not os.path.exists(final_video_path):
-        print("Final video file create nahi hui.")
-        notify_telegram("Final video file not created")
-        return
+        msg = f"[{name}] Final video file not created."
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-    print("\nGenerating thumbnail...")
-    thumb_path = os.path.join(OUTPUT_DIR, "thumbnail.jpg")
-    generate_thumbnail(
-        final_video_path,
-        thumb_path,
-        script.get("title", "Amazing Fact"),
-    )
+    # ---------- 5. Thumbnail ----------
+    print(f"\n[{name}] Generating thumbnail...")
+    thumb_path = os.path.join(ch_output_dir, f"thumbnail_{channel_index}.jpg")
+    generate_thumbnail(final_video_path, thumb_path, script.get("title", "Amazing Fact"))
 
-    print("\nUploading Video to YouTube...")
+    # ---------- 6. Upload to YouTube ----------
+    print(f"\n[{name}] Uploading to YouTube...")
     title, description, tags = build_metadata(script, full_narration)
-    print(f"Title: {title}")
-    print(f"Tags: {len(tags)} tags")
+    print(f"[{name}] Title: {title}")
 
-    # Each channel is independent: if one fails, the other still gets its upload.
-    for ch in get_youtube_channels():
-        name = ch["name"]
-        print(f"\n[{name}] Uploading...")
-        try:
-            video_id = upload_video(
-                video_path=final_video_path,
-                title=title,
-                description=description,
-                tags=tags,
-                privacy_status="public",
-                client_id=ch["client_id"],
-                client_secret=ch["client_secret"],
-                refresh_token=ch["refresh_token"],
-            )
-            print(f"[{name}] Video uploaded! ID: {video_id}")
-            print(f"https://youtube.com/shorts/{video_id}")
+    try:
+        video_id = upload_video(
+            video_path=final_video_path,
+            title=title,
+            description=description,
+            tags=tags,
+            privacy_status="public",
+            client_id=channel["client_id"],
+            client_secret=channel["client_secret"],
+            refresh_token=channel["refresh_token"],
+        )
+        print(f"[{name}] Video uploaded! ID: {video_id}")
+        print(f"https://youtube.com/shorts/{video_id}")
 
-            if os.path.exists(thumb_path):
-                print(f"[{name}] Setting thumbnail...")
-                set_thumbnail(
-                    video_id,
-                    thumb_path,
-                    ch["client_id"],
-                    ch["client_secret"],
-                    ch["refresh_token"],
-                )
-
-            if ch["playlist_id"]:
-                print(f"[{name}] Adding to playlist...")
-                add_to_playlist(
-                    video_id,
-                    ch["playlist_id"],
-                    ch["client_id"],
-                    ch["client_secret"],
-                    ch["refresh_token"],
-                )
-
-            elapsed = time.time() - start_time
-            notify_telegram(
-                f"[{name}] Video uploaded!\n"
-                f"{title}\n"
-                f"https://youtube.com/shorts/{video_id}\n"
-                f"{elapsed:.0f}s"
+        if os.path.exists(thumb_path):
+            print(f"[{name}] Setting thumbnail...")
+            set_thumbnail(
+                video_id,
+                thumb_path,
+                channel["client_id"],
+                channel["client_secret"],
+                channel["refresh_token"],
             )
 
-        except Exception as e:
-            print(f"[{name}] YouTube Upload Failed: {e}")
-            notify_telegram(f"[{name}] YouTube upload failed: {e}")
+        if channel["playlist_id"]:
+            print(f"[{name}] Adding to playlist...")
+            add_to_playlist(
+                video_id,
+                channel["playlist_id"],
+                channel["client_id"],
+                channel["client_secret"],
+                channel["refresh_token"],
+            )
 
-    if TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET and TIKTOK_REFRESH_TOKEN:
-        print("\nUploading Video to TikTok (draft)...")
+        elapsed = time.time() - start_time
+        notify_telegram(
+            f"[{name}] Video uploaded!\n"
+            f"{title}\n"
+            f"https://youtube.com/shorts/{video_id}\n"
+            f"{elapsed:.0f}s"
+        )
+
+    except Exception as e:
+        msg = f"[{name}] YouTube Upload Failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
+
+    # ---------- 7. TikTok (sirf channel 1 ke liye, ya jis channel par chahiye) ----------
+    # NOTE: TikTok par same video dono channels se post karna weird lagega,
+    # isliye sirf pehle channel ke liye TikTok upload kar rahe hain.
+    if channel_index == 0 and TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET and TIKTOK_REFRESH_TOKEN:
+        print(f"\n[{name}] Uploading to TikTok (draft)...")
         try:
             tiktok_publish_id = upload_to_tiktok(
                 video_path=final_video_path,
@@ -442,22 +461,51 @@ def main():
                 client_secret=TIKTOK_CLIENT_SECRET,
                 refresh_token=TIKTOK_REFRESH_TOKEN,
             )
-            print(f"TikTok upload complete! Publish ID: {tiktok_publish_id}")
+            print(f"[{name}] TikTok upload complete! Publish ID: {tiktok_publish_id}")
 
             notify_telegram(
-                f"TikTok draft uploaded!\n"
+                f"[{name}] TikTok draft uploaded!\n"
                 f"{title}\n"
                 f"Publish ID: {tiktok_publish_id}\n"
                 f"Open TikTok app to post manually"
             )
         except Exception as e:
-            print(f"TikTok Upload Failed: {e}")
-            notify_telegram(f"TikTok upload failed: {e}")
-    else:
-        print("\nTikTok credentials missing - skipping TikTok upload.")
+            msg = f"[{name}] TikTok Upload Failed: {e}"
+            print(msg)
+            notify_telegram(msg)
+    elif channel_index == 0:
+        print(f"\n[{name}] TikTok credentials missing - skipping TikTok upload.")
 
     elapsed = time.time() - start_time
-    print(f"\nPipeline complete in {elapsed:.0f}s")
+    print(f"\n[{name}] Pipeline complete in {elapsed:.0f}s")
+    return True
+
+
+def main():
+    print("Starting Automated Short Pipeline...")
+    channels = get_youtube_channels()
+    print(f"Found {len(channels)} channel(s) to process.\n")
+
+    results = []
+    for idx, channel in enumerate(channels):
+        try:
+            ok = run_channel_pipeline(channel, idx)
+            results.append((channel["name"], ok))
+        except Exception as e:
+            print(f"[{channel['name']}] Pipeline crashed: {e}")
+            notify_telegram(f"[{channel['name']}] Pipeline crashed: {e}")
+            results.append((channel["name"], False))
+
+    print("\n" + "=" * 60)
+    print("  FINAL SUMMARY")
+    print("=" * 60)
+    for name, ok in results:
+        status = "✅ SUCCESS" if ok else "❌ FAILED"
+        print(f"  {name}: {status}")
+
+    # Agar koi bhi channel fail hua to overall exit non-zero
+    if not all(ok for _, ok in results):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
