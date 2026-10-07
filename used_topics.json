@@ -421,6 +421,24 @@
       "format": "top3",
       "title": "समुद्र के तीन सबसे अजीब जीव 🌊",
       "fact": "Three bizarre deep-sea phenomena include vampire squids turning inside out, barreleye fish having transparent heads with barrel-shaped eyes, and xenophyophores growing as giant single-celled amoebas on the ocean floor."
+    },
+    {
+      "date": "2026-10-07T16:07:16",
+      "category": "deserts, mountains and extreme places on Earth",
+      "format": "mystery_explained",
+      "hook_pattern": "impossible",
+      "hook": "achanak maut dikhti hai is sukhi jagah par.",
+      "title": "रेगिस्तान में ये अजीब दीवार कहाँ से आई 🏜️",
+      "fact": "In the Atacama Desert, powerful winds and sand erosion carve massive natural rock formations and canyons that look like giant walls."
+    },
+    {
+      "date": "2026-10-07T16:08:09",
+      "category": "dreams and sleep",
+      "format": "personal_what_if",
+      "hook_pattern": "aap_question",
+      "hook": "sote hue aankhen hilakar baat karna mumkin hai!",
+      "title": "नींद में आंखें हिलाकर बात करना सच है 🤯",
+      "fact": "Lucid dreamers can communicate with the outside world using pre-arranged eye movements while remaining fully asleep."
     }
   ]
 }
