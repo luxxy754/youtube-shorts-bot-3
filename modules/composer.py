@@ -37,7 +37,6 @@ CTA_START_RATIO = 0.55
 CTA_FADE_DURATION = 0.5
 
 
-
 class ShortsComposer:
     def __init__(self, output_dir="output"):
         self.output_dir = output_dir
@@ -136,10 +135,6 @@ class ShortsComposer:
     # ========================================================
     @staticmethod
     def _make_caption_png(text, font_file, font_size=CAPTION_FONT_SIZE):
-        """
-        PIL se transparent PNG banata hai jisme text hota hai.
-        White text + black stroke. Multiple lines supported.
-        """
         try:
             if not text or not text.strip() or not font_file:
                 return None
@@ -148,7 +143,6 @@ class ShortsComposer:
             if len(display_text) > 55:
                 display_text = display_text[:52] + "..."
 
-            # Word wrap — 2 lines max
             words = display_text.split()
             if len(words) > 5:
                 mid = len(words) // 2
@@ -164,7 +158,6 @@ class ShortsComposer:
                 print("PIL font load fail: " + str(e))
                 font = ImageFont.load_default()
 
-            # Text size calculate karo
             dummy_img = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
             dummy_draw = ImageDraw.Draw(dummy_img)
 
@@ -180,18 +173,15 @@ class ShortsComposer:
             max_width = max(line_widths) if line_widths else 0
             total_height = sum(line_heights) + (len(lines) - 1) * 15
 
-            # Padding
             pad_x = 40
             pad_y = 30
 
             img_w = max_width + pad_x * 2
             img_h = total_height + pad_y * 2
 
-            # Transparent image
             img = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
             draw = ImageDraw.Draw(img)
 
-            # Draw each line centered
             y_offset = pad_y
             for i, line in enumerate(lines):
                 bbox = draw.textbbox((0, 0), line, font=font, stroke_width=6)
@@ -214,23 +204,17 @@ class ShortsComposer:
             return None
 
     def _make_caption_overlay(self, text, start_time, duration, font_file):
-        """
-        PIL se caption PNG banata hai aur ImageClip mein convert karta hai.
-        """
         try:
             png_img = self._make_caption_png(text, font_file)
             if png_img is None:
                 return None
 
-            # Convert PIL to numpy array
             img_array = np.array(png_img)
 
-            # ImageClip banao
             caption_clip = ImageClip(img_array, transparent=True)
             caption_clip = caption_clip.set_duration(duration)
             caption_clip = caption_clip.set_start(start_time)
 
-            # Position: center horizontally, 55% vertically
             caption_clip = caption_clip.set_position(
                 ("center", int(TARGET_H * CAPTION_POSITION_RATIO))
             )
@@ -249,7 +233,6 @@ class ShortsComposer:
     # ========================================================
     @staticmethod
     def _make_hook_png(text, font_file, max_width=TARGET_W - 120):
-        """Big yellow/black-stroke text, auto-wrapped (max 3 lines) and auto-shrunk to fit."""
         if not text or not text.strip() or not font_file:
             return None
         words = text.strip().upper().split()[:8]
@@ -284,7 +267,6 @@ class ShortsComposer:
         return img
 
     def _make_hook_overlay(self, text, duration, font_file):
-        """Opening text shown from t=0 so the very first frame already says what this is about."""
         try:
             png = self._make_hook_png(text, font_file)
             if png is None:
@@ -292,7 +274,7 @@ class ShortsComposer:
             clip = ImageClip(np.array(png), transparent=True)
             clip = clip.set_start(0).set_duration(duration)
             clip = clip.set_position(("center", int(TARGET_H * HOOK_POSITION_RATIO)))
-            clip = clip.crossfadeout(0.25)  # NO fade-in: frame 0 must already have the text
+            clip = clip.crossfadeout(0.25)
             print("Hook text added: " + text)
             return clip
         except Exception as e:
@@ -364,11 +346,12 @@ class ShortsComposer:
             codec="libx264",
             audio_codec="aac",
             audio_bitrate="192k",
-            fps=30,
-            preset="medium",
-            ffmpeg_params=["-pix_fmt", "yuv420p", "-crf", "22"],
+            fps=24,                        # 30 se 24 kar diya (tez)
+            preset="ultrafast",            # medium se ultrafast (bohat tez)
+            ffmpeg_params=["-pix_fmt", "yuv420p", "-crf", "23"],  # 22 se 23 (tez)
             temp_audiofile=os.path.join(self.output_dir, "temp_audio.m4a"),
             remove_temp=True,
+            threads=4,                     # multi-threading
         )
         return output_path
 
@@ -435,7 +418,6 @@ class ShortsComposer:
             if not voice_clips:
                 raise RuntimeError("No voice clips ready")
 
-            # ---- audio: voice EQ/comp + synthesized SFX + ducked BGM + loudnorm ----
             try:
                 master_path = build_final_audio(
                     voiceover_paths[:count],
@@ -446,12 +428,6 @@ class ShortsComposer:
                 )
                 master_clip = AudioFileClip(master_path)
                 opened_audio.append(master_clip)
-                # The mixed wav can end a few ms before total_duration (loudnorm/atrim),
-                # and moviepy 1.0.3 crashes when it reads past the real end of the file.
-                # NOTE: video.set_duration() also resets the audio duration, so a
-                # subclip alone is not enough - shorten total_duration itself so the
-                # video and audio both stop just inside the real audio length.
-                # (Sound is unchanged; only the last ~0.15s of the video is trimmed.)
                 real_len = float(master_clip.duration or 0)
                 if real_len > 1.0:
                     total_duration = min(total_duration, real_len - 0.15)
@@ -470,7 +446,6 @@ class ShortsComposer:
 
             overlays = []
 
-            # Word-by-word Hinglish captions (replaces the old block captions)
             if word_scenes:
                 try:
                     from modules.captions import build_word_caption_clips
