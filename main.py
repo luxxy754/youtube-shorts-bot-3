@@ -4,561 +4,548 @@ if not hasattr(PIL.Image, "ANTIALIAS"):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
 # ---------------------------------------------------------------------
 import os
+import json
+import time
+import re
 import random
-from PIL import Image, ImageDraw, ImageFont
-import numpy as np
-from moviepy.editor import (
-    VideoFileClip, AudioFileClip, CompositeAudioClip,
-    concatenate_audioclips, concatenate_videoclips, vfx,
-    ImageClip, CompositeVideoClip
+import shutil
+import requests
+from datetime import datetime
+from google import genai
+
+from modules.composer import ShortsComposer
+from modules.youtube_uploader import (
+    upload_video,
+    set_thumbnail,
+    add_to_playlist,
 )
-import moviepy.audio.fx.all as afx
+from modules.tiktok_uploader import upload_to_tiktok
+from modules.asset_manager import fetch_scene_video
+from modules.audio import generate_voiceover
+from modules.brain import generate_script, record_history, attach_video_id
 
-from modules.audio import build_final_audio, INTER_SCENE_PAUSE
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
+PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY")
 
-TARGET_W = 1080
-TARGET_H = 1920
+YOUTUBE_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID")
+YOUTUBE_CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET")
+YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN")
+YOUTUBE_PLAYLIST_ID = os.getenv("YOUTUBE_PLAYLIST_ID", "")
 
-BG_MUSIC_VOLUME = 0.15
-SCENE_GAP = INTER_SCENE_PAUSE
+TIKTOK_CLIENT_KEY = os.getenv("TIKTOK_CLIENT_KEY")
+TIKTOK_CLIENT_SECRET = os.getenv("TIKTOK_CLIENT_SECRET")
+TIKTOK_REFRESH_TOKEN = os.getenv("TIKTOK_REFRESH_TOKEN")
 
-# ============================================================
-# CAPTION SETTINGS — PIL based (no ImageMagick needed)
-# ============================================================
-CAPTION_FONT_SIZE = 72
-CAPTION_POSITION_RATIO = 0.55
-CAPTION_FADE = 0.10
-CAPTION_MAX_WIDTH = TARGET_W - 100
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Opening hook text (top of the screen, away from the word-by-word captions)
-HOOK_POSITION_RATIO = 0.14
-HOOK_TEXT_SECONDS = 2.6
+USED_TOPICS_FILE = "used_topics.json"
 
-# CTA settings
-CTA_TEXT = "Follow for more"
-CTA_FONT_SIZE = 58
-CTA_POSITION_RATIO = 0.85
-CTA_START_RATIO = 0.55
-CTA_FADE_DURATION = 0.5
+ENABLE_CAPTIONS = os.getenv("ENABLE_CAPTIONS", "0") == "1"
+WORD_CAPTIONS = os.getenv("WORD_CAPTIONS", "1") == "1"
+HOOK_CAPTION = os.getenv("HOOK_CAPTION", "1") == "1"
+HOOK_TEXT = os.getenv("HOOK_TEXT", "1") == "1"        # curiosity-gap opening text on frame 0
+FIRST_FRAME_MIN_BRIGHTNESS = int(os.getenv("FIRST_FRAME_MIN_BRIGHTNESS", "55"))  # 0-255, 0 = off
+
+client = genai.Client(api_key=GEMINI_API_KEY)
+
+ASSETS_DIR = "assets"
+TEMP_VIDEO_DIR = os.path.join(ASSETS_DIR, "video_clips")
+TEMP_AUDIO_DIR = os.path.join(ASSETS_DIR, "audio_clips")
+SCENE_CLIP_DIR = os.path.join(ASSETS_DIR, "scene_clips")
+OUTPUT_DIR = os.path.join(ASSETS_DIR, "final")
+
+for directory in [TEMP_VIDEO_DIR, TEMP_AUDIO_DIR, SCENE_CLIP_DIR, OUTPUT_DIR]:
+    os.makedirs(directory, exist_ok=True)
+
+KEYWORD_MAP = {
+    "brain": "human brain animation",
+    "heart": "human heart beating",
+    "eye": "human eye closeup",
+    "money": "money cash dollars",
+    "gold": "gold coins treasure",
+    "volcano": "volcano eruption lava",
+    "lightning": "lightning storm sky",
+    "tsunami": "tsunami wave ocean",
+}
+
+TITLE_POOL = [
+    "Ye Kaise Possible Hai? 😱",
+    "Duniya Ka Sabse Bada Raaz!",
+    "Scientists Bhi Confuse! 🤯",
+    "Ye Sach Hai Ya Jhoot?",
+    "Aapko Yakeen Nahi Hoga!",
+    "Ye Cheez Real Hai!",
+    "Ye Mat Karna Kabhi!",
+]
+
+BASE_TAGS = [
+    "shorts", "youtubeshorts", "facts", "hindi facts", "urdu facts",
+    "amazing facts", "mysteries", "viral shorts", "science facts",
+    "crazy facts", "mind blowing", "unbelievable", "dangerous facts",
+    "what if", "how many",
+]
 
 
-class ShortsComposer:
-    def __init__(self, output_dir="output"):
-        self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
+def get_youtube_channels():
+    """
+    Channel 1 = existing secrets.
+    Channel 2 is OPTIONAL: used only when YOUTUBE_REFRESH_TOKEN_2 is set.
+    Har channel ka apna independent pipeline chalega.
+    """
+    channels = [{
+        "name": "Channel 1",
+        "client_id": YOUTUBE_CLIENT_ID,
+        "client_secret": YOUTUBE_CLIENT_SECRET,
+        "refresh_token": YOUTUBE_REFRESH_TOKEN,
+        "playlist_id": YOUTUBE_PLAYLIST_ID,
+    }]
+    token2 = os.getenv("YOUTUBE_REFRESH_TOKEN_2")
+    if token2:
+        channels.append({
+            "name": "Channel 2",
+            "client_id": os.getenv("YOUTUBE_CLIENT_ID_2") or YOUTUBE_CLIENT_ID,
+            "client_secret": os.getenv("YOUTUBE_CLIENT_SECRET_2") or YOUTUBE_CLIENT_SECRET,
+            "refresh_token": token2,
+            "playlist_id": os.getenv("YOUTUBE_PLAYLIST_ID_2", ""),
+        })
+    return channels
 
-    @staticmethod
-    def _get_font_file():
-        font_candidates = [
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-            "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-            "assets/fonts/DejaVuSans-Bold.ttf",
-            "assets/fonts/NotoSans-Bold.ttf",
-            "C:/Windows/Fonts/arialbd.ttf",
-            "C:/Windows/Fonts/arial.ttf",
-        ]
-        for f in font_candidates:
-            if os.path.exists(f):
-                print("Font found: " + f)
-                return f
+
+def notify_telegram(message: str):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": message[:4000]},
+            timeout=15,
+        )
+    except Exception as e:
+        print(f"Telegram notify failed: {e}")
+
+
+def get_optimized_search_query(text):
+    key = re.sub(r"\s+", " ", (text or "").lower()).strip()
+    return KEYWORD_MAP.get(key, text)
+
+
+def scene_prosody(index, total, text):
+    """
+    Edge TTS only exposes rate/pitch, so vary those by the role of the line to avoid a flat read:
+    hook = firm and slightly slower, twist = slow + low (weight), last = a touch faster,
+    questions rise, exclamations push, everything else gets small random variation so no two
+    neighbouring sentences have the identical melody.
+    """
+    text = (text or "").strip()
+    if index == 1:
+        return "+2%", "-3Hz"
+    if index == total - 1 and total > 4:
+        return "-6%", "-4Hz"
+    if index == total:
+        return "+4%", "+0Hz"
+    if text.endswith("?"):
+        return "+6%", "+4Hz"
+    if text.endswith("!"):
+        return "+11%", "+2Hz"
+    rate = random.choice([6, 8, 10, 12])
+    pitch = random.choice([-2, -1, 0, 1, 2])
+    return f"+{rate}%", f"{pitch:+d}Hz"
+
+
+def build_scene_voiceovers(scenes, audio_dir):
+    """Har channel ke liye alag audio_dir use hoga, taake files overwrite na hon."""
+    paths = []
+    for index, scene in enumerate(scenes, start=1):
+        path = os.path.join(audio_dir, f"scene_{index:02d}.mp3")
+        if os.path.exists(path):
+            os.remove(path)
+
+        rate, pitch = scene_prosody(index, len(scenes), scene["narration"])
+
+        for attempt in range(1, 4):
+            try:
+                generate_voiceover(scene["narration"], path, rate=rate, pitch=pitch)
+                if os.path.exists(path) and os.path.getsize(path) > 1000:
+                    break
+            except Exception as e:
+                print(f"[Voice scene {index}] attempt {attempt} failed: {e}")
+                time.sleep(2)
+        else:
+            raise RuntimeError(f"Scene {index} ki voiceover generate nahi ho saki.")
+        paths.append(path)
+    return paths
+
+
+def build_scene_clips(scenes, clip_dir):
+    """Har channel ke liye alag clip_dir use hoga."""
+    shutil.rmtree(clip_dir, ignore_errors=True)
+    os.makedirs(clip_dir, exist_ok=True)
+
+    paths = []
+    for index, scene in enumerate(scenes, start=1):
+        target = os.path.join(clip_dir, f"scene_{index:02d}.mp4")
+        keyword = scene.get("search_keyword") or "nature landscape"
+        query = get_optimized_search_query(keyword)
+        print(f"Scene {index}: '{query}'")
 
         try:
-            import subprocess
-            result = subprocess.run(
-                ["fc-match", "-f", "%{file}", "sans:bold"],
-                capture_output=True, text=True, timeout=5
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                path = result.stdout.strip()
-                if os.path.exists(path):
-                    print("Font via fc-match: " + path)
-                    return path
+            if index == 1 and FIRST_FRAME_MIN_BRIGHTNESS:
+                # first frame = what decides swipe vs. watch: do not accept a dark/murky clip
+                try:
+                    fetch_scene_video(query, target, min_duration=3,
+                                      min_brightness=FIRST_FRAME_MIN_BRIGHTNESS)
+                except Exception as bright_err:
+                    print(f"No bright clip for scene 1 ({bright_err}); accepting any clip")
+                    fetch_scene_video(query, target, min_duration=3)
+            else:
+                fetch_scene_video(query, target, min_duration=3)
+            paths.append(target)
         except Exception as e:
-            print("fc-match failed: " + str(e))
+            print(f"Scene {index} ka clip nahi mila: {e}")
+            if not paths:
+                raise
+            paths.append(paths[-1])
+    return paths
 
-        print("Koi bhi font nahi mila!")
+
+def build_metadata(script, full_narration):
+    title_core = re.sub(r"#\S+", "", script.get("title", "")).strip()
+    if not title_core:
+        title_core = random.choice(TITLE_POOL)
+
+    title = f"{title_core[:75].strip()} #Shorts"[:95]
+
+    tags, seen, total_chars = [], set(), 0
+    for tag in script.get("tags", []) + BASE_TAGS:
+        tag = re.sub(r"[#,<>]", "", tag).strip().lower()
+        if not tag or tag in seen:
+            continue
+        if total_chars + len(tag) + 1 > 450:
+            break
+        seen.add(tag)
+        tags.append(tag)
+        total_chars += len(tag) + 1
+
+    hashtags, seen_h = [], set()
+    candidates = ["#Shorts", "#Facts", "#HindiFacts", "#UrduFacts", "#AmazingFacts", "#CrazyFacts", "#WhatIf", "#DangerousFacts"]
+    candidates += [
+        "#" + re.sub(r"[^0-9a-zA-Z]", "", t)
+        for t in script.get("tags", [])
+    ]
+    for candidate in candidates:
+        key = candidate.lower()
+        if len(candidate) < 3 or key in seen_h:
+            continue
+        seen_h.add(key)
+        hashtags.append(candidate)
+        if len(hashtags) >= 10:
+            break
+
+    body = script.get("description") or full_narration
+    description = f"{body}\n\n{' '.join(hashtags)}"[:4900]
+
+    return title, description, tags
+
+
+def generate_thumbnail(video_path: str, output_path: str, title_text: str):
+    import subprocess
+
+    if not os.path.exists(video_path):
         return None
 
-    @staticmethod
-    def _fit_vertical(clip):
-        if clip.w / clip.h > TARGET_W / TARGET_H:
-            clip = clip.resize(height=TARGET_H)
-            clip = clip.crop(x_center=clip.w / 2, width=TARGET_W)
-        else:
-            clip = clip.resize(width=TARGET_W)
-            clip = clip.crop(y_center=clip.h / 2, height=TARGET_H)
-        if (clip.w, clip.h) != (TARGET_W, TARGET_H):
-            clip = clip.resize((TARGET_W, TARGET_H))
-        return clip
+    frame_path = output_path + ".frame.jpg"
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-ss", "1", "-i", video_path,
+            "-frames:v", "1", "-q:v", "2", frame_path,
+        ],
+        capture_output=True,
+    )
 
-    @staticmethod
-    def _prepare_scene_video(path, duration):
-        try:
-            clip = VideoFileClip(path, audio=False)
-        except Exception as e:
-            raise RuntimeError("VideoFileClip fail: " + path + ": " + str(e))
+    if not os.path.exists(frame_path):
+        print("Thumbnail frame extract nahi ho paya.")
+        return None
 
-        if clip.duration is None or clip.duration <= 0:
-            clip.close()
-            raise RuntimeError("Clip duration invalid: " + path)
+    safe_title = re.sub(r"[^\x20-\x7E]", "", title_text)
+    safe_title = re.sub(r'[":\'\\\n\r%]', "", safe_title)[:40].strip()
+    if not safe_title:
+        safe_title = "Amazing Fact"
 
-        if clip.duration < duration + 0.2:
-            try:
-                clip = clip.fx(vfx.loop, duration=duration + 0.5)
-            except Exception as e:
-                clip.close()
-                raise RuntimeError("Loop fail: " + path + ": " + str(e))
-        else:
-            spare = max(0.0, clip.duration - duration - 0.2)
-            start = random.uniform(0, spare) if spare > 0.1 else 0.0
-            end = start + duration
-            if end > clip.duration:
-                end = clip.duration
-                start = max(0.0, end - duration)
-            try:
-                clip = clip.subclip(start, end)
-            except Exception as e:
-                clip.close()
-                raise RuntimeError("Subclip fail: " + path + ": " + str(e))
+    font_candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    ]
+    font_file = next((f for f in font_candidates if os.path.exists(f)), None)
 
-        fitted = ShortsComposer._fit_vertical(clip)
-        # slow punch-in = constant motion, keeps eyes on the screen
-        try:
-            d = max(duration, 0.5)
-            zoomed = fitted.resize(lambda t: 1 + 0.08 * min(t, d) / d)
-            return CompositeVideoClip(
-                [zoomed.set_position("center")], size=(TARGET_W, TARGET_H)
-            ).set_duration(fitted.duration)
-        except Exception:
-            return fitted
+    vf_parts = [
+        "scale=1080:1920:force_original_aspect_ratio=increase",
+        "crop=1080:1920",
+    ]
 
-    # ========================================================
-    # PIL CAPTION — ImageMagick ki zaroorat NAHI
-    # ========================================================
-    @staticmethod
-    def _make_caption_png(text, font_file, font_size=CAPTION_FONT_SIZE):
-        try:
-            if not text or not text.strip() or not font_file:
-                return None
+    if font_file:
+        vf_parts.append(
+            f"drawtext=text='{safe_title}':"
+            f"fontcolor=white:fontsize=72:"
+            f"box=1:boxcolor=black@0.7:boxborderw=20:"
+            f"x=(w-text_w)/2:y=h*0.75:"
+            f"fontfile={font_file}"
+        )
 
-            display_text = text.strip().upper()
-            if len(display_text) > 55:
-                display_text = display_text[:52] + "..."
+    cmd = [
+        "ffmpeg", "-y", "-i", frame_path,
+        "-vf", ",".join(vf_parts),
+        "-frames:v", "1", "-q:v", "2",
+        output_path,
+    ]
 
-            words = display_text.split()
-            if len(words) > 5:
-                mid = len(words) // 2
-                line1 = " ".join(words[:mid])
-                line2 = " ".join(words[mid:])
-                lines = [line1, line2]
-            else:
-                lines = [display_text]
+    result = subprocess.run(cmd, capture_output=True, text=True)
 
-            try:
-                font = ImageFont.truetype(font_file, font_size)
-            except Exception as e:
-                print("PIL font load fail: " + str(e))
-                font = ImageFont.load_default()
+    if os.path.exists(frame_path):
+        os.remove(frame_path)
 
-            dummy_img = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
-            dummy_draw = ImageDraw.Draw(dummy_img)
+    if result.returncode == 0 and os.path.exists(output_path):
+        return output_path
 
-            line_heights = []
-            line_widths = []
-            for line in lines:
-                bbox = dummy_draw.textbbox((0, 0), line, font=font, stroke_width=6)
-                w = bbox[2] - bbox[0]
-                h = bbox[3] - bbox[1]
-                line_widths.append(w)
-                line_heights.append(h)
+    print(f"Thumbnail generate nahi hua: {result.stderr[-300:]}")
+    return None
 
-            max_width = max(line_widths) if line_widths else 0
-            total_height = sum(line_heights) + (len(lines) - 1) * 15
 
-            pad_x = 40
-            pad_y = 30
+def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
+    """
+    Ek channel ke liye poora pipeline chalata hai:
+    script -> voiceover -> clips -> compose -> upload.
+    Har channel ke liye alag temp directories use hoti hain taake
+    parallel/sequential dono cases mein files clash na karein.
+    """
+    name = channel["name"]
+    print(f"\n{'='*60}")
+    print(f"  Starting pipeline for {name}")
+    print(f"{'='*60}\n")
 
-            img_w = max_width + pad_x * 2
-            img_h = total_height + pad_y * 2
+    # Channel-specific temp dirs (avoid overlap between channels)
+    ch_audio_dir = os.path.join(TEMP_AUDIO_DIR, f"channel_{channel_index}")
+    ch_clip_dir = os.path.join(SCENE_CLIP_DIR, f"channel_{channel_index}")
+    ch_output_dir = os.path.join(OUTPUT_DIR, f"channel_{channel_index}")
+    for d in (ch_audio_dir, ch_clip_dir, ch_output_dir):
+        os.makedirs(d, exist_ok=True)
 
-            img = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(img)
+    start_time = time.time()
 
-            y_offset = pad_y
-            for i, line in enumerate(lines):
-                bbox = draw.textbbox((0, 0), line, font=font, stroke_width=6)
-                line_w = bbox[2] - bbox[0]
-                x = (img_w - line_w) // 2
-                draw.text(
-                    (x, y_offset),
-                    line,
-                    font=font,
-                    fill=(255, 255, 255, 255),
-                    stroke_width=6,
-                    stroke_fill=(0, 0, 0, 255),
-                )
-                y_offset += line_heights[i] + 15
+    # ---------- 1. Script (unique per channel) ----------
+    print(f"\n[{name}] Generating fresh script...")
+    script = generate_script(client, USED_TOPICS_FILE)
+    if not script:
+        msg = f"[{name}] Script generation failed."
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-            return img
+    record_history(USED_TOPICS_FILE, script)
+    scenes = script["scenes"]
+    full_narration = " ".join(s["narration"] for s in scenes)
+    print(f"[{name}] {len(scenes)} scenes | Hook: {scenes[0]['narration']}")
 
-        except Exception as e:
-            print("Caption PNG creation error: " + str(e))
-            return None
+    # ---------- 2. Voiceover ----------
+    print(f"\n[{name}] Generating voiceovers...")
+    try:
+        voice_paths = build_scene_voiceovers(scenes, ch_audio_dir)
+    except Exception as e:
+        msg = f"[{name}] Voiceover failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-    def _make_caption_overlay(self, text, start_time, duration, font_file):
-        try:
-            png_img = self._make_caption_png(text, font_file)
-            if png_img is None:
-                return None
+    # ---------- 3. Stock clips ----------
+    print(f"\n[{name}] Downloading stock clips...")
+    try:
+        clip_paths = build_scene_clips(scenes, ch_clip_dir)
+    except Exception as e:
+        msg = f"[{name}] Video download failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-            img_array = np.array(png_img)
+    # ---------- 4. Compose ----------
+    print(f"\n[{name}] Composing final video...")
+    composer = ShortsComposer(output_dir=ch_output_dir)
 
-            caption_clip = ImageClip(img_array, transparent=True)
-            caption_clip = caption_clip.set_duration(duration)
-            caption_clip = caption_clip.set_start(start_time)
-
-            caption_clip = caption_clip.set_position(
-                ("center", int(TARGET_H * CAPTION_POSITION_RATIO))
-            )
-
-            caption_clip = caption_clip.crossfadein(CAPTION_FADE).crossfadeout(CAPTION_FADE)
-            caption_clip = caption_clip.set_opacity(1.0)
-
-            print("Caption added at " + str(round(start_time, 1)) + "s")
-            return caption_clip
-        except Exception as e:
-            print("Caption overlay error: " + str(e))
-            return None
-
-    # ========================================================
-    # HOOK TEXT — curiosity-gap opening text, visible from frame 0
-    # ========================================================
-    @staticmethod
-    def _make_hook_png(text, font_file, max_width=TARGET_W - 120):
-        if not text or not text.strip() or not font_file:
-            return None
-        words = text.strip().upper().split()[:8]
-        dummy = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
-        for size in (92, 84, 76, 68, 60, 52):
-            try:
-                font = ImageFont.truetype(font_file, size)
-            except Exception:
-                return None
-            stroke = max(6, size // 10)
-            lines, cur = [], ""
-            for w in words:
-                trial = (cur + " " + w).strip()
-                width = dummy.textbbox((0, 0), trial, font=font, stroke_width=stroke)[2]
-                if width <= max_width or not cur:
-                    cur = trial
-                else:
-                    lines.append(cur)
-                    cur = w
-            lines.append(cur)
-            widths = [dummy.textbbox((0, 0), l, font=font, stroke_width=stroke)[2] for l in lines]
-            if len(lines) <= 3 and max(widths) <= max_width:
+    bg_music_path = None
+    for candidate in [
+        os.path.join("assets", "bgm"),
+        os.path.join("modules", "bg_music.mp3"),
+    ]:
+        if os.path.isdir(candidate):
+            files = [f for f in os.listdir(candidate) if f.lower().endswith(".mp3")]
+            if files:
+                bg_music_path = os.path.join(candidate, random.choice(files))
+                print(f"[{name}] BG music: {bg_music_path}")
                 break
-        line_h = int(size * 1.25)
-        pad = 24
-        img = Image.new("RGBA", (max(widths) + pad * 2, line_h * len(lines) + pad * 2), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        for i, line in enumerate(lines):
-            x = (img.width - widths[i]) // 2
-            draw.text((x, pad + i * line_h), line, font=font, fill=(255, 226, 0, 255),
-                      stroke_width=stroke, stroke_fill=(0, 0, 0, 255))
-        return img
+        elif os.path.isfile(candidate):
+            bg_music_path = candidate
+            print(f"[{name}] BG music: {bg_music_path}")
+            break
 
-    def _make_hook_overlay(self, text, duration, font_file):
-        try:
-            png = self._make_hook_png(text, font_file)
-            if png is None:
-                return None
-            clip = ImageClip(np.array(png), transparent=True)
-            clip = clip.set_start(0).set_duration(duration)
-            clip = clip.set_position(("center", int(TARGET_H * HOOK_POSITION_RATIO)))
-            clip = clip.crossfadeout(0.25)
-            print("Hook text added: " + text)
-            return clip
-        except Exception as e:
-            print("Hook overlay error: " + str(e))
-            return None
+    if WORD_CAPTIONS:
+        captions = None
+    elif ENABLE_CAPTIONS:
+        captions = [s.get("caption", "") for s in scenes]
+    elif HOOK_CAPTION:
+        captions = [""] * len(scenes)
+        captions[0] = scenes[0].get("caption", "")
+        if len(scenes) > 4:
+            captions[-2] = scenes[-2].get("caption", "")
+    else:
+        captions = None
 
-    def _make_cta_overlay(self, total_duration, font_file):
-        try:
-            if not font_file:
-                return None
+    hook_text = None
+    if HOOK_TEXT:
+        hook_text = scenes[0].get("caption") or scenes[0].get("roman") or ""
+        print(f"[{name}] Opening text: {hook_text!r}")
 
-            png_img = self._make_caption_png(CTA_TEXT, font_file, font_size=CTA_FONT_SIZE)
-            if png_img is None:
-                return None
+    output_filename = f"final_short_{channel_index}.mp4"
+    try:
+        final_video_path = composer.create_multi_scene_short(
+            clip_paths=clip_paths,
+            voiceover_paths=voice_paths,
+            output_filename=output_filename,
+            bg_music_path=bg_music_path,
+            add_cta=False,
+            scene_narrations=captions,
+            word_scenes=scenes if WORD_CAPTIONS else None,
+            hook_text=hook_text,
+        )
+    except Exception as e:
+        msg = f"[{name}] Composition failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-            img_array = np.array(png_img)
-            cta_clip = ImageClip(img_array, transparent=True)
-            cta_clip = cta_clip.set_duration(total_duration)
-            cta_clip = cta_clip.set_position(
-                ("center", int(TARGET_H * CTA_POSITION_RATIO))
+    if not os.path.exists(final_video_path):
+        msg = f"[{name}] Final video file not created."
+        print(msg)
+        notify_telegram(msg)
+        return False
+
+    # ---------- 5. Thumbnail ----------
+    print(f"\n[{name}] Generating thumbnail...")
+    thumb_path = os.path.join(ch_output_dir, f"thumbnail_{channel_index}.jpg")
+    generate_thumbnail(final_video_path, thumb_path, script.get("title", "Amazing Fact"))
+
+    # ---------- 6. Upload to YouTube ----------
+    print(f"\n[{name}] Uploading to YouTube...")
+    title, description, tags = build_metadata(script, full_narration)
+    print(f"[{name}] Title: {title}")
+
+    try:
+        video_id = upload_video(
+            video_path=final_video_path,
+            title=title,
+            description=description,
+            tags=tags,
+            privacy_status="public",
+            client_id=channel["client_id"],
+            client_secret=channel["client_secret"],
+            refresh_token=channel["refresh_token"],
+        )
+        print(f"[{name}] Video uploaded! ID: {video_id}")
+        print(f"https://youtube.com/shorts/{video_id}")
+        attach_video_id(USED_TOPICS_FILE, video_id, name)
+
+        if os.path.exists(thumb_path):
+            print(f"[{name}] Setting thumbnail...")
+            set_thumbnail(
+                video_id,
+                thumb_path,
+                channel["client_id"],
+                channel["client_secret"],
+                channel["refresh_token"],
             )
 
-            start_time = total_duration * CTA_START_RATIO
-            cta_clip = cta_clip.set_start(start_time)
-            cta_clip = cta_clip.crossfadein(CTA_FADE_DURATION)
-            cta_clip = cta_clip.set_opacity(1.0)
-            return cta_clip
-        except Exception as e:
-            print("CTA error: " + str(e))
-            return None
+        if channel["playlist_id"]:
+            print(f"[{name}] Adding to playlist...")
+            add_to_playlist(
+                video_id,
+                channel["playlist_id"],
+                channel["client_id"],
+                channel["client_secret"],
+                channel["refresh_token"],
+            )
 
-    def _add_background_music(self, voice_audio, total_duration, bg_music_path):
-        audio_tracks = [voice_audio]
-        bg_music = None
-        try:
-            if bg_music_path and os.path.exists(bg_music_path):
-                print("BG music: " + bg_music_path)
-                bg_music_raw = AudioFileClip(bg_music_path)
-
-                if bg_music_raw.duration is None or bg_music_raw.duration <= 0:
-                    bg_music_raw.close()
-                    bg_music = None
-                else:
-                    bg_music = bg_music_raw
-                    if bg_music.duration < total_duration:
-                        loop_count = int(total_duration // bg_music.duration) + 2
-                        bg_music = concatenate_audioclips([bg_music] * loop_count)
-                    if bg_music.duration > total_duration:
-                        bg_music = bg_music.subclip(0, total_duration)
-                    bg_music = bg_music.volumex(BG_MUSIC_VOLUME)
-                    bg_music = (
-                        bg_music
-                        .fx(afx.audio_fadein, 0.5)
-                        .fx(afx.audio_fadeout, 1.0)
-                    )
-                    audio_tracks.append(bg_music)
-            else:
-                print("bg_music nahi mila")
-        except Exception as e:
-            print("BG music error: " + str(e))
-            bg_music = None
-
-        return CompositeAudioClip(audio_tracks), bg_music
-
-    def _export(self, video_clip, output_filename):
-        output_path = os.path.join(self.output_dir, output_filename)
-        video_clip.write_videofile(
-            output_path,
-            codec="libx264",
-            audio_codec="aac",
-            audio_bitrate="192k",
-            fps=24,                        # 30 se 24 kar diya (tez)
-            preset="ultrafast",            # medium se ultrafast (bohat tez)
-            ffmpeg_params=["-pix_fmt", "yuv420p", "-crf", "23"],  # 22 se 23 (tez)
-            temp_audiofile=os.path.join(self.output_dir, "temp_audio.m4a"),
-            remove_temp=True,
-            threads=4,                     # multi-threading
+        elapsed = time.time() - start_time
+        notify_telegram(
+            f"[{name}] Video uploaded!\n"
+            f"{title}\n"
+            f"https://youtube.com/shorts/{video_id}\n"
+            f"{elapsed:.0f}s"
         )
-        return output_path
 
-    def create_multi_scene_short(self, clip_paths, voiceover_paths,
-                                  output_filename="final_short.mp4",
-                                  bg_music_path="bg_music.mp3",
-                                  add_cta=True,
-                                  scene_narrations=None,
-                                  word_scenes=None,
-                                  hook_text=None):
-        print("Multi-scene composition START")
+    except Exception as e:
+        msg = f"[{name}] YouTube Upload Failed: {e}"
+        print(msg)
+        notify_telegram(msg)
+        return False
 
-        if not clip_paths or not voiceover_paths:
-            raise ValueError("clip_paths ya voiceover_paths empty hain")
-
-        count = min(len(clip_paths), len(voiceover_paths))
-        print("Scenes: " + str(count))
-
-        font_file = self._get_font_file()
-        if not font_file:
-            print("FONT NAHI MILA - Captions skip ho jayengi")
-        else:
-            print("Font ready: " + font_file)
-
-        voice_clips = []
-        video_scenes = []
-        opened_audio = []
-        opened_video = []
-        timeline = 0.0
-        scene_timings = []
-
+    # ---------- 7. TikTok (sirf channel 1 ke liye, ya jis channel par chahiye) ----------
+    # NOTE: TikTok par same video dono channels se post karna weird lagega,
+    # isliye sirf pehle channel ke liye TikTok upload kar rahe hain.
+    if channel_index == 0 and TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET and TIKTOK_REFRESH_TOKEN:
+        print(f"\n[{name}] Uploading to TikTok (draft)...")
         try:
-            for index in range(count):
-                clip_path = clip_paths[index]
-                voice_path = voiceover_paths[index]
+            tiktok_publish_id = upload_to_tiktok(
+                video_path=final_video_path,
+                title=title,
+                client_key=TIKTOK_CLIENT_KEY,
+                client_secret=TIKTOK_CLIENT_SECRET,
+                refresh_token=TIKTOK_REFRESH_TOKEN,
+            )
+            print(f"[{name}] TikTok upload complete! Publish ID: {tiktok_publish_id}")
 
-                try:
-                    voice = AudioFileClip(voice_path)
-                except Exception as e:
-                    raise RuntimeError("Scene voice load fail: " + str(e))
+            notify_telegram(
+                f"[{name}] TikTok draft uploaded!\n"
+                f"{title}\n"
+                f"Publish ID: {tiktok_publish_id}\n"
+                f"Open TikTok app to post manually"
+            )
+        except Exception as e:
+            msg = f"[{name}] TikTok Upload Failed: {e}"
+            print(msg)
+            notify_telegram(msg)
+    elif channel_index == 0:
+        print(f"\n[{name}] TikTok credentials missing - skipping TikTok upload.")
 
-                opened_audio.append(voice)
+    elapsed = time.time() - start_time
+    print(f"\n[{name}] Pipeline complete in {elapsed:.0f}s")
+    return True
 
-                if voice.duration is None or voice.duration <= 0.1:
-                    raise RuntimeError("Scene voice invalid")
 
-                scene_duration = voice.duration + SCENE_GAP
-                scene_timings.append((timeline, voice.duration))
+def main():
+    print("Starting Automated Short Pipeline...")
+    channels = get_youtube_channels()
+    print(f"Found {len(channels)} channel(s) to process.\n")
 
-                try:
-                    scene_video = self._prepare_scene_video(clip_path, scene_duration)
-                except Exception as e:
-                    raise RuntimeError("Scene video fail: " + str(e))
+    results = []
+    for idx, channel in enumerate(channels):
+        try:
+            ok = run_channel_pipeline(channel, idx)
+            results.append((channel["name"], ok))
+        except Exception as e:
+            print(f"[{channel['name']}] Pipeline crashed: {e}")
+            notify_telegram(f"[{channel['name']}] Pipeline crashed: {e}")
+            results.append((channel["name"], False))
 
-                opened_video.append(scene_video)
-                video_scenes.append(scene_video)
-                voice_clips.append(voice.set_start(timeline))
-                timeline += scene_duration
-                print("Scene " + str(index + 1) + " ready")
+    print("\n" + "=" * 60)
+    print("  FINAL SUMMARY")
+    print("=" * 60)
+    for name, ok in results:
+        status = "✅ SUCCESS" if ok else "❌ FAILED"
+        print(f"  {name}: {status}")
 
-            total_duration = timeline
-            print("Total: " + str(round(total_duration, 1)) + "s")
+    # Agar koi bhi channel fail hua to overall exit non-zero
+    if not all(ok for _, ok in results):
+        raise SystemExit(1)
 
-            if not voice_clips:
-                raise RuntimeError("No voice clips ready")
 
-            try:
-                master_path = build_final_audio(
-                    voiceover_paths[:count],
-                    scene_timings,
-                    total_duration,
-                    bg_music_path,
-                    out_dir=os.path.join(self.output_dir, "mix"),
-                )
-                master_clip = AudioFileClip(master_path)
-                opened_audio.append(master_clip)
-                real_len = float(master_clip.duration or 0)
-                if real_len > 1.0:
-                    total_duration = min(total_duration, real_len - 0.15)
-                final_audio = master_clip
-            except Exception as e:
-                print("Pro audio mix failed, using simple mix: " + str(e))
-                voice_track = CompositeAudioClip(voice_clips).set_duration(total_duration)
-                final_audio, bg_music = self._add_background_music(
-                    voice_track, total_duration, bg_music_path
-                )
-                if bg_music is not None:
-                    opened_audio.append(bg_music)
-
-            video = concatenate_videoclips(video_scenes, method="chain")
-            video = video.set_audio(final_audio).set_duration(total_duration)
-
-            overlays = []
-
-            if word_scenes:
-                try:
-                    from modules.captions import build_word_caption_clips
-                    overlays.extend(build_word_caption_clips(
-                        word_scenes, scene_timings, total_duration
-                    ))
-                except Exception as e:
-                    print("Word captions failed, video continues without them: " + str(e))
-            elif scene_narrations and font_file:
-                for i, (start_t, dur_t) in enumerate(scene_timings):
-                    if i >= len(scene_narrations):
-                        break
-                    narration_text = scene_narrations[i]
-                    caption = self._make_caption_overlay(
-                        narration_text, start_t, dur_t, font_file
-                    )
-                    if caption is not None:
-                        overlays.append(caption)
-                print(str(len(overlays)) + " captions added")
-
-            if hook_text and font_file:
-                hook_len = min(HOOK_TEXT_SECONDS, max(1.5, total_duration * 0.25))
-                hook_overlay = self._make_hook_overlay(hook_text, hook_len, font_file)
-                if hook_overlay is not None:
-                    overlays.append(hook_overlay)
-
-            if add_cta and font_file:
-                cta_overlay = self._make_cta_overlay(total_duration, font_file)
-                if cta_overlay is not None:
-                    overlays.append(cta_overlay)
-                    print("CTA overlay added")
-
-            if overlays:
-                try:
-                    video = CompositeVideoClip(
-                        [video] + overlays,
-                        size=(TARGET_W, TARGET_H)
-                    ).set_duration(total_duration)
-                except Exception as e:
-                    print("Overlay compose fail: " + str(e))
-
-            output_path = self._export(video, output_filename)
-
-            try:
-                video.close()
-            except Exception:
-                pass
-
-        finally:
-            for clip in opened_audio:
-                try:
-                    clip.close()
-                except Exception:
-                    pass
-            for clip in opened_video:
-                try:
-                    clip.close()
-                except Exception:
-                    pass
-
-        print("Video ready: " + output_path)
-        return output_path
-
-    def create_short(self, video_path, voiceover_path,
-                     output_filename="final_short.mp4",
-                     bg_music_path="bg_music.mp3"):
-        print("Single-clip composition")
-
-        if not os.path.exists(video_path):
-            raise FileNotFoundError("Video nahi mili: " + video_path)
-        if not os.path.exists(voiceover_path):
-            raise FileNotFoundError("Voiceover nahi mili: " + voiceover_path)
-
-        voiceover_clip = AudioFileClip(voiceover_path)
-        final_duration = voiceover_clip.duration
-        video_clip = VideoFileClip(video_path)
-
-        if video_clip.duration < final_duration:
-            video_clip = video_clip.fx(vfx.loop, duration=final_duration)
-        else:
-            video_clip = video_clip.subclip(0, final_duration)
-
-        final_audio, bg_music = self._add_background_music(
-            voiceover_clip, final_duration, bg_music_path
-        )
-        video_clip = video_clip.set_audio(final_audio)
-
-        font_file = self._get_font_file()
-        if font_file:
-            cta_overlay = self._make_cta_overlay(final_duration, font_file)
-            if cta_overlay is not None:
-                try:
-                    video_clip = CompositeVideoClip(
-                        [video_clip, cta_overlay],
-                        size=(TARGET_W, TARGET_H)
-                    ).set_duration(final_duration)
-                except Exception as e:
-                    print("CTA overlay fail: " + str(e))
-
-        output_path = self._export(video_clip, output_filename)
-
-        video_clip.close()
-        voiceover_clip.close()
-        if bg_music is not None:
-            try:
-                bg_music.close()
-            except Exception:
-                pass
-
-        print("Video ready: " + output_path)
-        return output_path
+if __name__ == "__main__":
+    main()
