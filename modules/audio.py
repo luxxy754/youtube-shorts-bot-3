@@ -1,11 +1,5 @@
 """
 Audio engine for the Shorts pipeline.
-
-- Voice: edge-tts (Hindi MALE neural voice only, retried - no female fallback),
-  tight silence trim, light EQ + de-click fades.
-- SFX: generated locally with numpy (no downloads, never fails, no copyright).
-- Mix: ffmpeg only. BGM is ducked under the voice (sidechain), voice is
-  compressed for clarity, and the master is loudness-normalised for Shorts.
 """
 
 import asyncio
@@ -20,18 +14,12 @@ import edge_tts
 
 SR = 44100
 
-# ---------------------------------------------------------------- voice ----
-# Male voice is LOCKED for every scene. gTTS fallback was removed because gTTS
-# only has a female voice, which made the gender flip between scenes whenever
-# Edge TTS failed once. If Edge TTS fails we retry the SAME voice instead.
 VOICE = os.getenv("TTS_VOICE", "hi-IN-MadhurNeural")
 TTS_RETRIES = 5
 VOICE_RATE = os.getenv("TTS_RATE", "+8%")
 VOICE_PITCH = "+0Hz"
 VOICE_VOLUME = "+0%"
 
-# Old value was 0.3s, which KEPT 0.3s of silence at both ends of every scene
-# (~0.6s dead air between sentences). Keep only a tiny natural breath now.
 SILENCE_TRIM_DB = "-42dB"
 SILENCE_KEEP = 0.06
 INTER_SCENE_PAUSE = 0.12
@@ -49,7 +37,6 @@ def _run(cmd, timeout=180):
 
 
 def _trim_silence(path):
-    """Trim head/tail silence, remove rumble, add a tiny fade-in (no clicks)."""
     tmp = path + ".trim.mp3"
     k = SILENCE_KEEP
     af = (
@@ -74,7 +61,6 @@ def _trim_silence(path):
 
 
 def generate_voiceover(text, output_path, rate=None, pitch=None):
-    """One scene of narration -> mp3 (trimmed). Always the same male Edge voice."""
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     clean = " ".join(str(text).split())
     if not clean:
@@ -95,11 +81,9 @@ def generate_voiceover(text, output_path, rate=None, pitch=None):
             print(f"Edge TTS ({VOICE}) attempt {attempt}/{TTS_RETRIES} failed: {e}")
             time.sleep(1.5 * attempt)
 
-    # Do NOT fall back to another (female) voice - fail loudly instead.
     raise RuntimeError(f"Male voice ({VOICE}) generate nahi hui: {last_err}")
 
 
-# ------------------------------------------------------------ synth SFX ----
 def _norm(x, peak=0.9):
     m = float(np.max(np.abs(x))) or 1.0
     return (x / m * peak).astype(np.float32)
@@ -110,7 +94,6 @@ def _t(dur):
 
 
 def _svf_bandpass_sweep(noise, f_start, f_end, q=2.0):
-    """State-variable band-pass with a moving centre frequency (pure numpy loop)."""
     n = len(noise)
     freqs = np.geomspace(f_start, f_end, n)
     f = 2.0 * np.sin(np.pi * freqs / SR)
@@ -148,7 +131,6 @@ def synth_riser(dur=1.0, rng=None):
 
 
 def synth_boom(dur=1.0, rng=None):
-    """Cinematic low hit: falling sine + short noise thump, soft-clipped."""
     rng = rng or np.random.default_rng()
     t = _t(dur)
     freq = 38 + (110 - 38) * np.exp(-t * 9)
@@ -191,14 +173,6 @@ def _place(track, sample, start_sec, gain):
 
 
 def build_sfx_track(scene_timings, total_duration, out_path, seed=None):
-    """
-    scene_timings: [(start_sec, voice_duration), ...]
-    Placement:
-      - hook: deep boom at 0.0
-      - every cut: whoosh (alternating direction for variety)
-      - twist scene (second-last): riser leading in + boom on the reveal
-      - last scene (CTA): soft ding + pop
-    """
     rng = np.random.default_rng(seed if seed is not None else random.randrange(1 << 30))
     n = int(SR * (total_duration + 1.5))
     track = np.zeros(n, dtype=np.float32)
@@ -240,7 +214,6 @@ def build_sfx_track(scene_timings, total_duration, out_path, seed=None):
     return out_path
 
 
-# ------------------------------------------------------------------ mix ----
 def _build_voice_track(voice_paths, scene_timings, total_duration, out_path):
     cmd = ["ffmpeg", "-y"]
     for p in voice_paths:
@@ -273,7 +246,7 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
     Returns the path of the finished master (WAV; moviepy encodes AAC once).
     Chain:
       voice -> EQ + compressor (clear, forward)      \
-      bgm   -> looped, ducked by the voice (sidechain) }-> amix -> loudnorm -14 LUFS -> limiter
+      bgm   -> looped, ducked by the voice (sidechain) }-> amix -> dynaudnorm -> limiter
       sfx   -> synthesized track                     /
     """
     os.makedirs(out_dir, exist_ok=True)
@@ -328,7 +301,7 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
         )
 
     graph += (
-        "[mix]loudnorm=I=-14:TP=-1.5:LRA=9,"
+        "[mix]dynaudnorm=f=150:g=15:p=0.9,"
         f"atrim=0:{total_duration:.3f},"
         "alimiter=limit=0.97[master]"
     )
