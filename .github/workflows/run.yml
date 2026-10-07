@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120        # 60 se 120 kar diya (2 channels ke liye)
 
     steps:
     - name: Checkout Code
@@ -90,9 +90,9 @@ jobs:
         TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
         TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
         TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
-        WORD_CAPTIONS: '1'     # word-by-word Hinglish captions (fonts auto-download)
-        ENABLE_CAPTIONS: '0'   # '1' = on-screen key-phrase captions
-        HOOK_CAPTION: '1'      # big text on the hook scene + twist scene
+        WORD_CAPTIONS: '0'     # 1 se 0 kar diya (captions off, speed tez)
+        ENABLE_CAPTIONS: '0'
+        HOOK_CAPTION: '1'
         TTS_VOICE: 'hi-IN-MadhurNeural'
         TTS_RATE: '+8%'
       run: python main.py
