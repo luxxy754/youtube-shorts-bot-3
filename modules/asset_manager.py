@@ -5,7 +5,6 @@ import subprocess
 import shutil
 
 
-# Clip IDs already used in this run - no same footage twice in one video
 _USED_IDS = set()
 
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
@@ -41,7 +40,6 @@ PEXELS_SEARCH_TERMS = [
 
 
 def frame_brightness(video_path, at=0.4):
-    """Mean luminance (0-255) of one early frame. Returns None if it cannot be measured."""
     try:
         import numpy as np
         r = subprocess.run(
@@ -113,10 +111,11 @@ def normalize_video(source_path, target_path):
         "-an",
         "-vf", "scale='min(1080,iw)':-2",
         "-c:v", "libx264",
-        "-preset", "fast",
-        "-crf", "23",
+        "-preset", "ultrafast",      # fast se ultrafast (bohat tez)
+        "-crf", "26",                # 23 se 26 (tez, thodi quality kam)
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
+        "-threads", "4",
         temp_output
     ]
 
@@ -249,8 +248,6 @@ def fetch_pexels_clip(keyword, target_path, min_duration=3, min_brightness=0):
         if not videos:
             continue
 
-        # Pexels returns results by relevance: shuffle only the top ones so the
-        # footage still matches the spoken line instead of being random.
         videos = videos[:10]
         random.shuffle(videos)
 
@@ -285,7 +282,7 @@ def fetch_pexels_clip(keyword, target_path, min_duration=3, min_brightness=0):
                             print(f"Clip too dark for the first frame ({lum:.0f} < {min_brightness}), trying another")
                             _USED_IDS.add(video.get("id"))
                             os.remove(target_path)
-                            break  # next video, not another resolution of the same one
+                            break
 
                     _USED_IDS.add(video.get("id"))
                     print(f"Valid Pexels clip ready: {target_path}")
@@ -411,11 +408,12 @@ def fetch_fallback_ai_clip(keyword, target_path, duration=6):
         "fps=30",
         "-t", str(max(duration, 5)),
         "-c:v", "libx264",
-        "-preset", "medium",
-        "-crf", "20",
+        "-preset", "ultrafast",      # medium se ultrafast (bohat tez)
+        "-crf", "23",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
         "-an",
+        "-threads", "4",
         target_path
     ]
 
