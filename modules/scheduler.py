@@ -6,7 +6,7 @@ Har run har channel ke liye ek video banata hai aur use YouTube par SCHEDULE kar
 us window ke andar har channel ka time random (date se seeded) nikalta hai, aur do
 channels kabhi ek dosre ke 40+ minute ke andar nahi aate.
 
-NAYA: Slots ab US trending hours ke hisaab se set hain (US ET audience ke liye best time):
+Slots US trending hours ke hisaab se (US ET audience ke liye best time):
   - Slot A: ~16:00-19:00 PKT  ==  6:00-9:00 AM ET   (US morning trending)
   - Slot B: ~04:00-08:00 PKT  ==  6:00-10:00 PM ET  (US evening prime time, prev day)
 
@@ -20,7 +20,6 @@ from datetime import datetime, timedelta, timezone
 
 PKT = timezone(timedelta(hours=5))
 
-# slot "A" = US morning (US ET 6-9 AM), slot "B" = US evening prime time (US ET 6-10 PM).
 SLOT_WINDOWS = {
     "A": {
         0: ("16:00", "19:00"),   # Mon  -> 6-9 AM ET
