@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   build-and-run:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120        # 60 se 120 kar diya (2 channels ke liye)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
 
     steps:
     - name: Checkout Code
@@ -32,9 +32,21 @@ jobs:
         cache: 'pip'
 
     - name: Install System Dependencies
+      timeout-minutes: 15
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
+        # azure.archive.ubuntu.com mirror hang ho raha tha -> seedha main mirror use karo
+        sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/apt-mirrors.txt || true
+        sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+
+        APT_OPTS="-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20"
+
+        for i in 1 2 3; do
+          sudo apt-get $APT_OPTS update && break
+          echo "apt-get update failed (attempt $i), retrying..."
+          sleep 10
+        done
+
+        sudo apt-get $APT_OPTS install -y --no-install-recommends \
           ffmpeg \
           imagemagick \
           libjpeg-dev \
@@ -48,7 +60,7 @@ jobs:
           fonts-dejavu-core \
           fonts-liberation \
           fontconfig
-        sudo fc-cache -f -v
+        sudo fc-cache -f
 
     - name: Fix ImageMagick Policy
       run: |
@@ -85,6 +97,10 @@ jobs:
         YOUTUBE_CLIENT_SECRET_2: ${{ secrets.YOUTUBE_CLIENT_SECRET_2 }}
         YOUTUBE_REFRESH_TOKEN_2: ${{ secrets.YOUTUBE_REFRESH_TOKEN_2 }}
         YOUTUBE_PLAYLIST_ID_2: ${{ secrets.YOUTUBE_PLAYLIST_ID_2 }}
+        YOUTUBE_CLIENT_ID_3: ${{ secrets.YOUTUBE_CLIENT_ID_3 }}
+        YOUTUBE_CLIENT_SECRET_3: ${{ secrets.YOUTUBE_CLIENT_SECRET_3 }}
+        YOUTUBE_REFRESH_TOKEN_3: ${{ secrets.YOUTUBE_REFRESH_TOKEN_3 }}
+        YOUTUBE_PLAYLIST_ID_3: ${{ secrets.YOUTUBE_PLAYLIST_ID_3 }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
