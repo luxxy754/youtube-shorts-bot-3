@@ -1,469 +1,581 @@
-"""
-Word-by-word English captions (Submagic / Hormozi style).
-
-- Text on screen = Roman Hinglish (narration_roman from Gemini; offline
-  Devanagari->Roman fallback if Gemini's version is missing / misaligned).
-- Words appear one by one, in sync with the voice. The word being spoken is
-  highlighted (accent colour + bigger). Already-spoken words of the same
-  phrase stay white.
-- Every word gets its own font + size. Important words (long / "power" words)
-  are drawn BIG in a loud display font, filler words (hai, ka, ki ...) small.
-- Pure PIL rendering (no ImageMagick). Fonts are Google Fonts, auto-downloaded
-  into assets/fonts on first run; if a download fails the code falls back to
-  the system bold font, so the video never breaks.
-
-Timing: edge-tts gives one mp3 per scene, so each word's time is estimated
-inside the scene by its spoken length (Devanagari letters + a pause after
-commas / danda). For 6-10 word scenes this stays in sync.
-"""
-
 import os
 import random
-import re
-
 from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from moviepy.editor import (
+    VideoFileClip, AudioFileClip, CompositeAudioClip,
+    concatenate_audioclips, concatenate_videoclips, vfx,
+    ImageClip, CompositeVideoClip
+)
+import moviepy.audio.fx.all as afx
+
+from modules.audio import build_final_audio, INTER_SCENE_PAUSE
 
 TARGET_W = 1080
 TARGET_H = 1920
-CAPTION_CENTER_RATIO = 0.60     # vertical centre of the caption block
-MAX_LINE_W = TARGET_W - 120
-WORDS_PER_CHUNK = max(1, int(os.getenv("CAPTION_WORDS", "2")))   # English reads best 2 words at a time
-WORD_GAP = 28
-ACTIVE_SCALE = 1.12
 
-# NOTE: the old path "assets/fonts" existed as a 1-byte FILE in the repo, so os.makedirs() crashed and
-# captions were silently skipped. New folder name + self-healing in ensure_fonts().
-FONT_DIR = os.path.join("assets", "caption_fonts")
-_GF = "https://raw.githubusercontent.com/google/fonts/main/ofl/"
-_GFA = "https://raw.githubusercontent.com/google/fonts/main/apache/"
-FONT_SPECS = {
-    # key: (filename, url, is_display_font)
-    "anton":    ("Anton-Regular.ttf",         _GF + "anton/Anton-Regular.ttf", True),
-    "bangers":  ("Bangers-Regular.ttf",       _GF + "bangers/Bangers-Regular.ttf", True),
-    "luckiest": ("LuckiestGuy-Regular.ttf",   _GFA + "luckiestguy/LuckiestGuy-Regular.ttf", True),
-    "bebas":    ("BebasNeue-Regular.ttf",     _GF + "bebasneue/BebasNeue-Regular.ttf", False),
-    "lilita":   ("LilitaOne-Regular.ttf",     _GF + "lilitaone/LilitaOne-Regular.ttf", False),
-    "marker":   ("PermanentMarker-Regular.ttf", _GFA + "permanentmarker/PermanentMarker-Regular.ttf", False),
-    "poppins":  ("Poppins-ExtraBold.ttf",     _GF + "poppins/Poppins-ExtraBold.ttf", False),
-}
+BG_MUSIC_VOLUME = 0.15
+SCENE_GAP = INTER_SCENE_PAUSE
 
-SYSTEM_FALLBACKS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-    "C:/Windows/Fonts/arialbd.ttf",
-]
+# ============================================================
+# CAPTION SETTINGS — PIL based (no ImageMagick needed)
+# ============================================================
+CAPTION_FONT_SIZE = 72
+CAPTION_POSITION_RATIO = 0.55
+CAPTION_FADE = 0.10
+CAPTION_MAX_WIDTH = TARGET_W - 100
 
-ACCENTS = [
-    (255, 221, 0),    # yellow
-    (0, 255, 140),    # green
-    (255, 90, 90),    # red
-    (0, 205, 255),    # cyan
-    (255, 150, 0),    # orange
-    (255, 110, 235),  # pink
-]
+# CTA settings
+CTA_TEXT = "Follow for more"
+CTA_FONT_SIZE = 58
+CTA_POSITION_RATIO = 0.85
+CTA_START_RATIO = 0.55
+CTA_FADE_DURATION = 0.5
 
-# Small filler words -> drawn small
-STOP_WORDS = {
-    "a", "an", "the", "is", "are", "was", "were", "be", "been", "am", "to", "of", "in", "on", "at", "it",
-    "its", "it's", "and", "or", "but", "so", "as", "if", "do", "does", "did", "for", "with", "that", "this",
-    "these", "those", "you", "your", "you're", "i", "me", "my", "we", "our", "they", "them", "their", "he",
-    "she", "his", "her", "has", "have", "had", "can", "will", "just", "than", "then", "there", "here",
-    "from", "by", "up", "out", "into", "when", "what", "which", "who", "how", "also", "get", "got",
-}
-# Words that deserve the big hero treatment
-POWER_WORDS = {
-    "never", "always", "every", "nobody", "everyone", "secret", "truth", "lie", "lies", "lying", "fake",
-    "danger", "dangerous", "scary", "shocking", "insane", "crazy", "wrong", "stop", "dont", "don't",
-    "brain", "mind", "memory", "forget", "forgotten", "fear", "love", "hate", "angry", "stress", "sleep",
-    "first", "last", "only", "most", "worst", "best", "seconds", "instantly", "secretly", "why", "really",
-    "real", "free", "hidden", "trick", "trap", "proof", "powerful", "obsessed", "addicted", "trust",
-}
-
-_font_cache = {}
-_available = None
+# ============================================================
+# AUDIO TAIL BUFFER
+# ============================================================
+# End-of-video audio cut fix: master audio ke end mein thoda extra
+# buffer chhod do taake last word poora sunai de aur koi abrupt cut na ho.
+AUDIO_TAIL_BUFFER = 0.35
 
 
-# ---------------------------------------------------------------- fonts ----
-def _looks_like_font(data):
-    return len(data) > 10_000 and data[:4] in (b"\x00\x01\x00\x00", b"OTTO", b"true", b"ttcf")
+class ShortsComposer:
+    def __init__(self, output_dir="output"):
+        self.output_dir = output_dir
+        os.makedirs(self.output_dir, exist_ok=True)
 
+    @staticmethod
+    def _get_font_file():
+        font_candidates = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+            "assets/fonts/DejaVuSans-Bold.ttf",
+            "assets/fonts/NotoSans-Bold.ttf",
+            "C:/Windows/Fonts/arialbd.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+        ]
+        for f in font_candidates:
+            if os.path.exists(f):
+                print("Font found: " + f)
+                return f
 
-def ensure_fonts():
-    """Return {key: path} of the display fonts that exist (downloading missing ones)."""
-    global _available
-    if _available is not None:
-        return _available
-
-    try:
-        if os.path.isfile(FONT_DIR):          # a stray file with the folder's name blocks makedirs
-            os.remove(FONT_DIR)
-        os.makedirs(FONT_DIR, exist_ok=True)
-    except Exception as e:
-        print("Caption font dir problem (" + str(e) + "), using system font only")
-        _available = {}
-        return _available
-    found = {}
-    for key, (fname, url, _display) in FONT_SPECS.items():
-        path = os.path.join(FONT_DIR, fname)
-        if not os.path.exists(path):
-            try:
-                import requests
-                r = requests.get(url, timeout=25)
-                if r.status_code == 200 and _looks_like_font(r.content):
-                    with open(path, "wb") as f:
-                        f.write(r.content)
-                    print("Caption font downloaded: " + fname)
-                else:
-                    print("Caption font download failed (" + str(r.status_code) + "): " + fname)
-            except Exception as e:
-                print("Caption font download error " + fname + ": " + str(e))
-        if os.path.exists(path):
-            found[key] = path
-
-    _available = found
-    print("Caption fonts ready: " + (", ".join(sorted(found)) or "NONE (system fallback)"))
-    return found
-
-
-def _fallback_font():
-    for f in SYSTEM_FALLBACKS:
-        if os.path.exists(f):
-            return f
-    try:
-        import subprocess
-        out = subprocess.run(["fc-match", "-f", "%{file}", "sans:bold"],
-                             capture_output=True, text=True, timeout=5).stdout.strip()
-        if out and os.path.exists(out):
-            return out
-    except Exception:
-        pass
-    return None
-
-
-def _load_font(path, size):
-    key = (path, int(size))
-    if key not in _font_cache:
         try:
-            _font_cache[key] = ImageFont.truetype(path, int(size)) if path else ImageFont.load_default()
+            import subprocess
+            result = subprocess.run(
+                ["fc-match", "-f", "%{file}", "sans:bold"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                path = result.stdout.strip()
+                if os.path.exists(path):
+                    print("Font via fc-match: " + path)
+                    return path
+        except Exception as e:
+            print("fc-match failed: " + str(e))
+
+        print("Koi bhi font nahi mila!")
+        return None
+
+    @staticmethod
+    def _fit_vertical(clip):
+        if clip.w / clip.h > TARGET_W / TARGET_H:
+            clip = clip.resize(height=TARGET_H)
+            clip = clip.crop(x_center=clip.w / 2, width=TARGET_W)
+        else:
+            clip = clip.resize(width=TARGET_W)
+            clip = clip.crop(y_center=clip.h / 2, height=TARGET_H)
+        if (clip.w, clip.h) != (TARGET_W, TARGET_H):
+            clip = clip.resize((TARGET_W, TARGET_H))
+        return clip
+
+    @staticmethod
+    def _prepare_scene_video(path, duration, punchy=False):
+        try:
+            clip = VideoFileClip(path, audio=False)
+        except Exception as e:
+            raise RuntimeError("VideoFileClip fail: " + path + ": " + str(e))
+
+        if clip.duration is None or clip.duration <= 0:
+            clip.close()
+            raise RuntimeError("Clip duration invalid: " + path)
+
+        if clip.duration < duration + 0.2:
+            try:
+                clip = clip.fx(vfx.loop, duration=duration + 0.5)
+            except Exception as e:
+                clip.close()
+                raise RuntimeError("Loop fail: " + path + ": " + str(e))
+        else:
+            spare = max(0.0, clip.duration - duration - 0.2)
+            start = random.uniform(0, spare) if spare > 0.1 else 0.0
+            end = start + duration
+            if end > clip.duration:
+                end = clip.duration
+                start = max(0.0, end - duration)
+            try:
+                clip = clip.subclip(start, end)
+            except Exception as e:
+                clip.close()
+                raise RuntimeError("Subclip fail: " + path + ": " + str(e))
+
+        fitted = ShortsComposer._fit_vertical(clip)
+        zoom_amount = 0.08
+        if punchy:
+            zoom_amount = 0.16
+            try:
+                fitted = fitted.fx(vfx.lum_contrast, lum=14, contrast=0.22, contrast_thr=120)
+            except Exception as e:
+                print("First-scene punch-up skipped: " + str(e))
+        try:
+            d = max(duration, 0.5)
+            zoomed = fitted.resize(lambda t: 1 + zoom_amount * min(t, d) / d)
+            return CompositeVideoClip(
+                [zoomed.set_position("center")], size=(TARGET_W, TARGET_H)
+            ).set_duration(fitted.duration)
         except Exception:
-            _font_cache[key] = ImageFont.load_default()
-    return _font_cache[key]
+            return fitted
 
+    # ========================================================
+    # PIL CAPTION — ImageMagick ki zaroorat NAHI
+    # ========================================================
+    @staticmethod
+    def _make_caption_png(text, font_file, font_size=CAPTION_FONT_SIZE):
+        try:
+            if not text or not text.strip() or not font_file:
+                return None
 
-# ------------------------------------------- Devanagari -> Roman fallback ----
-_VOW = {"अ": "a", "आ": "aa", "इ": "i", "ई": "ee", "उ": "u", "ऊ": "oo", "ऋ": "ri",
-        "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au", "ऑ": "o"}
-_SIGN = {"ा": "aa", "ि": "i", "ी": "ee", "ु": "u", "ू": "oo", "ृ": "ri", "े": "e",
-         "ै": "ai", "ो": "o", "ौ": "au", "ॉ": "o"}
-_CONS = {"क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "n", "च": "ch", "छ": "chh",
-         "ज": "j", "झ": "jh", "ञ": "n", "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh",
-         "ण": "n", "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n", "प": "p",
-         "फ": "f", "ब": "b", "भ": "bh", "म": "m", "य": "y", "र": "r", "ल": "l",
-         "व": "v", "श": "sh", "ष": "sh", "स": "s", "ह": "h"}
-_NUKTA = {"क": "q", "ख": "kh", "ग": "gh", "ज": "z", "ड": "r", "ढ": "rh", "फ": "f"}
-_NUKTA_CHAR = "\u093c"
-_HALANT = "\u094d"
+            display_text = text.strip().upper()
+            if len(display_text) > 55:
+                display_text = display_text[:52] + "..."
 
-
-def _translit_word(word):
-    """Simple Hinglish transliteration of one Devanagari word (fallback only)."""
-    word = word.replace("क़", "क" + _NUKTA_CHAR).replace("ख़", "ख" + _NUKTA_CHAR) \
-        .replace("ग़", "ग" + _NUKTA_CHAR).replace("ज़", "ज" + _NUKTA_CHAR) \
-        .replace("ड़", "ड" + _NUKTA_CHAR).replace("ढ़", "ढ" + _NUKTA_CHAR) \
-        .replace("फ़", "फ" + _NUKTA_CHAR)
-    tokens = []   # [text, ends_with_vowel, inherent_a]
-    i, n = 0, len(word)
-    while i < n:
-        ch = word[i]
-        if ch in _CONS:
-            base = _CONS[ch]
-            i += 1
-            if i < n and word[i] == _NUKTA_CHAR:
-                base = _NUKTA.get(ch, base)
-                i += 1
-            if i < n and word[i] in _SIGN:
-                tokens.append([base + _SIGN[word[i]], True, False])
-                i += 1
-            elif i < n and word[i] == _HALANT:
-                tokens.append([base, False, False])
-                i += 1
+            words = display_text.split()
+            if len(words) > 5:
+                mid = len(words) // 2
+                line1 = " ".join(words[:mid])
+                line2 = " ".join(words[mid:])
+                lines = [line1, line2]
             else:
-                tokens.append([base + "a", True, True])
-        elif ch in _VOW:
-            tokens.append([_VOW[ch], True, False])
-            i += 1
-        elif ch in ("ं", "ँ"):
-            tokens.append(["n", False, False])
-            i += 1
-        elif ch == "ः":
-            tokens.append(["h", False, False])
-            i += 1
-        elif ch in _SIGN:
-            tokens.append([_SIGN[ch], True, False])
-            i += 1
-        else:
-            i += 1
+                lines = [display_text]
 
-    # schwa deletion: end of word, then medial (right to left)
-    if tokens and tokens[-1][2]:
-        tokens[-1][0] = tokens[-1][0][:-1]
-        tokens[-1][1] = False
-        tokens[-1][2] = False
-    for k in range(len(tokens) - 2, 0, -1):
-        if tokens[k][2] and tokens[k - 1][1] and tokens[k + 1][1]:
-            tokens[k][0] = tokens[k][0][:-1]
-            tokens[k][1] = False
-            tokens[k][2] = False
-    roman = "".join(t[0] for t in tokens)
-    # Hinglish spelling: hota, karna, kabhi, zindagi (not hotaa / kabhee)
-    roman = re.sub(r"aa$", "a", roman) if len(roman) > 3 else roman
-    roman = re.sub(r"ee$", "i", roman) if len(roman) > 3 else roman
-    return roman
+            try:
+                font = ImageFont.truetype(font_file, font_size)
+            except Exception as e:
+                print("PIL font load fail: " + str(e))
+                font = ImageFont.load_default()
 
+            dummy_img = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
+            dummy_draw = ImageDraw.Draw(dummy_img)
 
-def devanagari_to_roman(text):
-    out = []
-    for tok in str(text).split():
-        trailing = re.search(r"[,.?!।]+$", tok)
-        core = re.sub(r"[,.?!।]+$", "", tok)
-        mark = ""
-        if trailing:
-            mark = trailing.group(0).replace("।", ".")
-        out.append(_translit_word(core) + mark)
-    return " ".join(out)
+            line_heights = []
+            line_widths = []
+            for line in lines:
+                bbox = dummy_draw.textbbox((0, 0), line, font=font, stroke_width=6)
+                w = bbox[2] - bbox[0]
+                h = bbox[3] - bbox[1]
+                line_widths.append(w)
+                line_heights.append(h)
 
+            max_width = max(line_widths) if line_widths else 0
+            total_height = sum(line_heights) + (len(lines) - 1) * 15
 
-# --------------------------------------------------------------- planning ----
-def _clean_display(word):
-    word = re.sub(r"[^\w'\u2019-]", "", word, flags=re.UNICODE)
-    return word.upper()
+            pad_x = 40
+            pad_y = 30
 
+            img_w = max_width + pad_x * 2
+            img_h = total_height + pad_y * 2
 
-def _spoken_weight(deva_tok):
-    letters = len(re.findall(r"[\u0900-\u097F]", deva_tok)) or len(deva_tok)
-    w = float(max(letters, 2))
-    if re.search(r"[,;:]$", deva_tok):
-        w += 2.5
-    if re.search(r"[\u0964.?!]$", deva_tok):
-        w += 4.0
-    return w
+            img = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
 
+            y_offset = pad_y
+            for i, line in enumerate(lines):
+                bbox = draw.textbbox((0, 0), line, font=font, stroke_width=6)
+                line_w = bbox[2] - bbox[0]
+                x = (img_w - line_w) // 2
+                draw.text(
+                    (x, y_offset),
+                    line,
+                    font=font,
+                    fill=(255, 255, 255, 255),
+                    stroke_width=6,
+                    stroke_fill=(0, 0, 0, 255),
+                )
+                y_offset += line_heights[i] + 15
 
-def plan_scene_words(narration, roman):
-    """Return [(display_word, weight, ends_phrase)].
+            return img
 
-    English narration: the spoken tokens ARE the caption words (1:1 with the TTS word boundaries).
-    Legacy Devanagari narration: use the Roman transliteration aligned to the Devanagari tokens.
-    """
-    spoken = str(narration).split()
-    if not re.search(r"[\u0900-\u097F]", str(narration)):
-        words = []
-        for tok in spoken:
-            disp = _clean_display(tok)
-            if not disp:
-                continue
-            words.append((disp, _spoken_weight(tok), bool(re.search(r"[,.?!:;]$", tok))))
-        return words
+        except Exception as e:
+            print("Caption PNG creation error: " + str(e))
+            return None
 
-    deva = spoken
-    rom = str(roman or "").split()
-    if len(rom) != len(deva) or any(re.search(r"[\u0900-\u097F]", r) for r in rom):
-        rom = devanagari_to_roman(narration).split()
-    n = min(len(deva), len(rom))
-    words = []
-    for j in range(n):
-        disp = _clean_display(rom[j])
-        if not disp:
-            continue
-        words.append((disp, _spoken_weight(deva[j]), bool(re.search(r"[,\u0964.?!]$", deva[j]))))
-    return words
+    def _make_caption_overlay(self, text, start_time, duration, font_file):
+        try:
+            png_img = self._make_caption_png(text, font_file)
+            if png_img is None:
+                return None
 
+            img_array = np.array(png_img)
 
-def plan_word_events(scenes, scene_timings, total_duration):
-    """
-    scenes: [{'narration':..., 'roman':...}]
-    scene_timings: [(start, voice_duration), ...]
-    Returns list of chunks: each {'words': [{'text','t0','t1'}...]}
-    """
-    chunks = []
-    count = min(len(scenes), len(scene_timings))
-    for i in range(count):
-        start, dur = scene_timings[i]
-        scene_end = scene_timings[i + 1][0] if i + 1 < count else total_duration
-        words = plan_scene_words(scenes[i].get("narration", ""), scenes[i].get("roman", ""))
-        if not words:
-            continue
-        real = scenes[i].get("word_times") or []
-        use_real = (len(real) == len(words)
-                    and all(real[k + 1]["start"] >= real[k]["start"] for k in range(len(real) - 1)))
-        total_w = sum(w[1] for w in words)
-        cum = 0.0
-        timed = []
-        for k, (text, wt, ends) in enumerate(words):
-            if use_real:
-                # asli awaaz ka time (edge-tts WordBoundary). Agla lafz shuru hone tak ye lafz screen par.
-                t0 = start + min(real[k]["start"], dur)
-                nxt = real[k + 1]["start"] if k + 1 < len(real) else dur
-                t1 = start + min(max(nxt, real[k]["end"]), dur + 0.05)
+            caption_clip = ImageClip(img_array, transparent=True)
+            caption_clip = caption_clip.set_duration(duration)
+            caption_clip = caption_clip.set_start(start_time)
+
+            caption_clip = caption_clip.set_position(
+                ("center", int(TARGET_H * CAPTION_POSITION_RATIO))
+            )
+
+            caption_clip = caption_clip.crossfadein(CAPTION_FADE).crossfadeout(CAPTION_FADE)
+            caption_clip = caption_clip.set_opacity(1.0)
+
+            print("Caption added at " + str(round(start_time, 1)) + "s")
+            return caption_clip
+        except Exception as e:
+            print("Caption overlay error: " + str(e))
+            return None
+
+    def _make_hook_banner(self, text, font_file, duration):
+        try:
+            text = " ".join(str(text or "").split()).upper()
+            if not text:
+                return None
+            if len(text) > 42:
+                text = text[:40].rstrip() + "..."
+
+            font_path = font_file
+            try:
+                from modules.captions import ensure_fonts
+                fonts = ensure_fonts()
+                font_path = fonts.get("anton") or fonts.get("lilita") or font_file
+            except Exception:
+                pass
+            if not font_path:
+                return None
+
+            font = ImageFont.truetype(font_path, 104)
+            dummy = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
+            max_w = TARGET_W - 160
+            lines, cur = [], ""
+            for word in text.split():
+                trial = (cur + " " + word).strip()
+                if cur and dummy.textlength(trial, font=font) > max_w:
+                    lines.append(cur)
+                    cur = word
+                else:
+                    cur = trial
+            if cur:
+                lines.append(cur)
+            lines = lines[:3]
+
+            line_h = 104 + 14
+            pad_x, pad_y = 44, 30
+            box_w = int(max(dummy.textlength(l, font=font) for l in lines)) + pad_x * 2
+            box_h = line_h * len(lines) + pad_y * 2
+            img = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.rounded_rectangle([0, 0, box_w - 1, box_h - 1], radius=36, fill=(0, 0, 0, 175))
+            y = pad_y
+            for l in lines:
+                w = dummy.textlength(l, font=font)
+                draw.text(((box_w - w) / 2, y), l, font=font, fill=(255, 221, 0, 255),
+                          stroke_width=7, stroke_fill=(0, 0, 0, 255))
+                y += line_h
+
+            clip = ImageClip(np.array(img), transparent=True).set_duration(duration).set_start(0)
+            clip = clip.crossfadeout(0.25)
+            return clip.set_position(("center", int(TARGET_H * 0.15)))
+        except Exception as e:
+            print("Hook banner error: " + str(e))
+            return None
+
+    def _make_cta_overlay(self, total_duration, font_file):
+        try:
+            if not font_file:
+                return None
+
+            png_img = self._make_caption_png(CTA_TEXT, font_file, font_size=CTA_FONT_SIZE)
+            if png_img is None:
+                return None
+
+            img_array = np.array(png_img)
+            cta_clip = ImageClip(img_array, transparent=True)
+            cta_clip = cta_clip.set_duration(total_duration)
+            cta_clip = cta_clip.set_position(
+                ("center", int(TARGET_H * CTA_POSITION_RATIO))
+            )
+
+            start_time = total_duration * CTA_START_RATIO
+            cta_clip = cta_clip.set_start(start_time)
+            cta_clip = cta_clip.crossfadein(CTA_FADE_DURATION)
+            cta_clip = cta_clip.set_opacity(1.0)
+            return cta_clip
+        except Exception as e:
+            print("CTA error: " + str(e))
+            return None
+
+    def _add_background_music(self, voice_audio, total_duration, bg_music_path):
+        audio_tracks = [voice_audio]
+        bg_music = None
+        try:
+            if bg_music_path and os.path.exists(bg_music_path):
+                print("BG music: " + bg_music_path)
+                bg_music_raw = AudioFileClip(bg_music_path)
+
+                if bg_music_raw.duration is None or bg_music_raw.duration <= 0:
+                    bg_music_raw.close()
+                    bg_music = None
+                else:
+                    bg_music = bg_music_raw
+                    if bg_music.duration < total_duration:
+                        loop_count = int(total_duration // bg_music.duration) + 2
+                        bg_music = concatenate_audioclips([bg_music] * loop_count)
+                    if bg_music.duration > total_duration:
+                        bg_music = bg_music.subclip(0, total_duration)
+                    bg_music = bg_music.volumex(BG_MUSIC_VOLUME)
+                    bg_music = (
+                        bg_music
+                        .fx(afx.audio_fadein, 0.5)
+                        .fx(afx.audio_fadeout, 1.0)
+                    )
+                    audio_tracks.append(bg_music)
             else:
-                t0 = start + dur * cum / total_w
-                cum += wt
-                t1 = start + dur * cum / total_w
-            if k == len(words) - 1:
-                t1 = max(t1, min(scene_end, t1 + 0.25))   # hold last word until the cut
-            timed.append({"text": text, "t0": t0, "t1": t1, "ends": ends})
+                print("bg_music nahi mila")
+        except Exception as e:
+            print("BG music error: " + str(e))
+            bg_music = None
 
-        cur = []
-        for w in timed:
-            cur.append(w)
-            if len(cur) >= WORDS_PER_CHUNK or w["ends"]:
-                chunks.append({"words": cur})
-                cur = []
-        if cur:
-            chunks.append({"words": cur})
-    return chunks
+        return CompositeAudioClip(audio_tracks), bg_music
 
+    def _export(self, video_clip, output_filename):
+        output_path = os.path.join(self.output_dir, output_filename)
+        video_clip.write_videofile(
+            output_path,
+            codec="libx264",
+            audio_codec="aac",
+            audio_bitrate="192k",
+            fps=24,
+            preset="ultrafast",
+            ffmpeg_params=["-pix_fmt", "yuv420p", "-crf", "23"],
+            temp_audiofile=os.path.join(self.output_dir, "temp_audio.m4a"),
+            remove_temp=True,
+            threads=4,
+        )
+        return output_path
 
-# ---------------------------------------------------------------- styling ----
-def _style_chunk(chunk, rng, fonts, fallback, state):
-    """Give every word a font, size and accent colour (stored in the chunk)."""
-    words = chunk["words"]
-    display_keys = [k for k, s in FONT_SPECS.items() if s[2] and k in fonts]
-    normal_keys = [k for k, s in FONT_SPECS.items() if not s[2] and k in fonts]
-    all_keys = display_keys + normal_keys
+    def create_multi_scene_short(self, clip_paths, voiceover_paths,
+                                  output_filename="final_short.mp4",
+                                  bg_music_path="bg_music.mp3",
+                                  add_cta=True,
+                                  scene_narrations=None,
+                                  word_scenes=None,
+                                  hook_text=None):
+        print("Multi-scene composition START")
 
-    importance = []
-    for w in words:
-        low = w["text"].lower()
-        if low in STOP_WORDS:
-            importance.append(0)
-        elif low in POWER_WORDS or len(low) >= 7:
-            importance.append(2)
+        if not clip_paths or not voiceover_paths:
+            raise ValueError("clip_paths ya voiceover_paths empty hain")
+
+        count = min(len(clip_paths), len(voiceover_paths))
+        print("Scenes: " + str(count))
+
+        font_file = self._get_font_file()
+        if not font_file:
+            print("FONT NAHI MILA - Captions skip ho jayengi")
         else:
-            importance.append(1)
-    if max(importance) < 2:
-        # make sure one word per phrase is the hero (longest non-stop word)
-        best = max(range(len(words)), key=lambda j: (importance[j], len(words[j]["text"])))
-        if importance[best] >= 1:
-            importance[best] = 2
+            print("Font ready: " + font_file)
 
-    for j, w in enumerate(words):
-        imp = importance[j]
-        pool = (display_keys if imp == 2 else normal_keys if imp == 1 else normal_keys) or all_keys
-        pool = [k for k in pool if k != state.get("last_font")] or pool
-        key = rng.choice(pool) if pool else None
-        state["last_font"] = key
-        w["font_path"] = fonts.get(key) if key else fallback
-        if WORDS_PER_CHUNK == 1:
-            base = {2: 178, 1: 150, 0: 118}[imp]     # ek lafz = bada aur bold
+        voice_clips = []
+        video_scenes = []
+        opened_audio = []
+        opened_video = []
+        timeline = 0.0
+        scene_timings = []
+
+        try:
+            for index in range(count):
+                clip_path = clip_paths[index]
+                voice_path = voiceover_paths[index]
+
+                try:
+                    voice = AudioFileClip(voice_path)
+                except Exception as e:
+                    raise RuntimeError("Scene voice load fail: " + str(e))
+
+                opened_audio.append(voice)
+
+                if voice.duration is None or voice.duration <= 0.1:
+                    raise RuntimeError("Scene voice invalid")
+
+                scene_duration = voice.duration + SCENE_GAP
+                scene_timings.append((timeline, voice.duration))
+
+                try:
+                    scene_video = self._prepare_scene_video(clip_path, scene_duration, punchy=(index == 0))
+                except Exception as e:
+                    raise RuntimeError("Scene video fail: " + str(e))
+
+                opened_video.append(scene_video)
+                video_scenes.append(scene_video)
+                voice_clips.append(voice.set_start(timeline))
+                timeline += scene_duration
+                print("Scene " + str(index + 1) + " ready")
+
+            total_duration = timeline
+            print("Total (timeline): " + str(round(total_duration, 1)) + "s")
+
+            if not voice_clips:
+                raise RuntimeError("No voice clips ready")
+
+            # ---- audio: voice EQ/comp + synthesized SFX + ducked BGM + loudnorm ----
+            # NOTE: build_final_audio ab khud audio ko poora banata hai (atrim safe).
+            # Agar wo fail ho to simple mix par jaate hain.
+            try:
+                master_path = build_final_audio(
+                    voiceover_paths[:count],
+                    scene_timings,
+                    total_duration,
+                    bg_music_path,
+                    out_dir=os.path.join(self.output_dir, "mix"),
+                )
+                master_clip = AudioFileClip(master_path)
+                opened_audio.append(master_clip)
+
+                real_len = float(master_clip.duration or 0)
+                # FIX: pehle min() use ho raha tha jo last word ko cut kar deta tha.
+                # Ab actual audio duration use karte hain + tail buffer.
+                if real_len > 1.0:
+                    total_duration = real_len + AUDIO_TAIL_BUFFER
+                    print("Total (real audio + buffer): " + str(round(total_duration, 2)) + "s")
+                final_audio = master_clip
+            except Exception as e:
+                print("Pro audio mix failed, using simple mix: " + str(e))
+                voice_track = CompositeAudioClip(voice_clips).set_duration(total_duration)
+                final_audio, bg_music = self._add_background_music(
+                    voice_track, total_duration, bg_music_path
+                )
+                if bg_music is not None:
+                    opened_audio.append(bg_music)
+
+            video = concatenate_videoclips(video_scenes, method="chain")
+            video = video.set_audio(final_audio).set_duration(total_duration)
+
+            overlays = []
+
+            # Word-by-word captions
+            if word_scenes:
+                try:
+                    from modules.captions import build_word_caption_clips
+                    overlays.extend(build_word_caption_clips(
+                        word_scenes, scene_timings, total_duration
+                    ))
+                except Exception as e:
+                    import traceback
+                    print("Word captions failed, video continues without them: " + str(e))
+                    traceback.print_exc()
+            elif scene_narrations and font_file:
+                for i, (start_t, dur_t) in enumerate(scene_timings):
+                    if i >= len(scene_narrations):
+                        break
+                    narration_text = scene_narrations[i]
+                    caption = self._make_caption_overlay(
+                        narration_text, start_t, dur_t, font_file
+                    )
+                    if caption is not None:
+                        overlays.append(caption)
+                print(str(len(overlays)) + " captions added")
+
+            if hook_text:
+                banner_clip = self._make_hook_banner(
+                    hook_text, font_file, min(2.6, max(1.5, total_duration * 0.2))
+                )
+                if banner_clip is not None:
+                    overlays.append(banner_clip)
+                    print("Hook banner added: " + str(hook_text))
+
+            if add_cta and font_file:
+                cta_overlay = self._make_cta_overlay(total_duration, font_file)
+                if cta_overlay is not None:
+                    overlays.append(cta_overlay)
+                    print("CTA overlay added")
+
+            if overlays:
+                try:
+                    video = CompositeVideoClip(
+                        [video] + overlays,
+                        size=(TARGET_W, TARGET_H)
+                    ).set_duration(total_duration)
+                except Exception as e:
+                    print("Overlay compose fail: " + str(e))
+
+            output_path = self._export(video, output_filename)
+
+            try:
+                video.close()
+            except Exception:
+                pass
+
+        finally:
+            for clip in opened_audio:
+                try:
+                    clip.close()
+                except Exception:
+                    pass
+            for clip in opened_video:
+                try:
+                    clip.close()
+                except Exception:
+                    pass
+
+        print("Video ready: " + output_path)
+        return output_path
+
+    def create_short(self, video_path, voiceover_path,
+                     output_filename="final_short.mp4",
+                     bg_music_path="bg_music.mp3"):
+        print("Single-clip composition")
+
+        if not os.path.exists(video_path):
+            raise FileNotFoundError("Video nahi mili: " + video_path)
+        if not os.path.exists(voiceover_path):
+            raise FileNotFoundError("Voiceover nahi mili: " + voiceover_path)
+
+        voiceover_clip = AudioFileClip(voiceover_path)
+        final_duration = voiceover_clip.duration
+        video_clip = VideoFileClip(video_path)
+
+        if video_clip.duration < final_duration:
+            video_clip = video_clip.fx(vfx.loop, duration=final_duration)
         else:
-            base = {2: 132, 1: 98, 0: 72}[imp]
-        size = base + rng.randint(-6, 6)
-        font_obj_path = w["font_path"] if "font_path" in w else None
-        if font_obj_path:
-            _dummy = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
-            while size > 50 and _dummy.textlength(w["text"], font=_load_font(font_obj_path, size * ACTIVE_SCALE)) > MAX_LINE_W - 40:
-                size -= 6
-        w["size"] = size
-        w["accent"] = ACCENTS[state["accent_i"] % len(ACCENTS)]
-        state["accent_i"] += 1
-        w["hero"] = imp == 2
+            video_clip = video_clip.subclip(0, final_duration)
 
+        final_audio, bg_music = self._add_background_music(
+            voiceover_clip, final_duration, bg_music_path
+        )
+        video_clip = video_clip.set_audio(final_audio)
 
-def style_chunks(chunks, seed=None):
-    fonts = ensure_fonts()
-    fallback = _fallback_font()
-    rng = random.Random(seed)
-    state = {"last_font": None, "accent_i": rng.randrange(len(ACCENTS))}
-    for c in chunks:
-        _style_chunk(c, rng, fonts, fallback, state)
-    return chunks
+        font_file = self._get_font_file()
+        if font_file:
+            cta_overlay = self._make_cta_overlay(final_duration, font_file)
+            if cta_overlay is not None:
+                try:
+                    video_clip = CompositeVideoClip(
+                        [video_clip, cta_overlay],
+                        size=(TARGET_W, TARGET_H)
+                    ).set_duration(final_duration)
+                except Exception as e:
+                    print("CTA overlay fail: " + str(e))
 
+        output_path = self._export(video_clip, output_filename)
 
-# -------------------------------------------------------------- rendering ----
-def _layout(chunk):
-    """Fixed layout for a chunk: returns (lines, canvas_h). Each word gets x, line, baseline info."""
-    dummy = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
-    metrics = []
-    for w in chunk["words"]:
-        font = _load_font(w["font_path"], w["size"])
-        width = dummy.textlength(w["text"], font=font)
-        asc, desc = font.getmetrics()
-        metrics.append((width, asc, desc))
+        video_clip.close()
+        voiceover_clip.close()
+        if bg_music is not None:
+            try:
+                bg_music.close()
+            except Exception:
+                pass
 
-    lines, cur, cur_w = [], [], 0.0
-    for j, (width, _a, _d) in enumerate(metrics):
-        add = width + (WORD_GAP if cur else 0)
-        if cur and cur_w + add > MAX_LINE_W:
-            lines.append(cur)
-            cur, cur_w = [], 0.0
-            add = width
-        cur.append(j)
-        cur_w += add
-    if cur:
-        lines.append(cur)
-
-    pad = 40
-    y = pad
-    placed = [None] * len(chunk["words"])
-    for line in lines:
-        line_w = sum(metrics[j][0] for j in line) + WORD_GAP * (len(line) - 1)
-        max_asc = max(metrics[j][1] for j in line)
-        max_desc = max(metrics[j][2] for j in line)
-        baseline = y + max_asc
-        x = (TARGET_W - line_w) / 2
-        for j in line:
-            width = metrics[j][0]
-            placed[j] = {"cx": x + width / 2, "baseline": baseline, "width": width}
-            x += width + WORD_GAP
-        y = baseline + max_desc + 14
-    return placed, int(y + pad)
-
-
-def render_chunk_frame(chunk, active_idx):
-    """Transparent RGBA frame: words 0..active_idx visible, word active_idx highlighted."""
-    if "layout" not in chunk:
-        chunk["layout"] = _layout(chunk)
-    placed, height = chunk["layout"]
-
-    img = Image.new("RGBA", (TARGET_W, height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    for j in range(active_idx + 1):
-        w = chunk["words"][j]
-        active = (j == active_idx)
-        size = w["size"] * (ACTIVE_SCALE if active else 1.0)
-        font = _load_font(w["font_path"], size)
-        stroke = max(6, int(size * 0.09))
-        fill = w["accent"] if active else (255, 255, 255)
-        cx, base = placed[j]["cx"], placed[j]["baseline"]
-        # soft drop shadow, then outlined text
-        draw.text((cx, base + 7), w["text"], font=font, fill=(0, 0, 0, 170),
-                  stroke_width=stroke, stroke_fill=(0, 0, 0, 170), anchor="ms")
-        draw.text((cx, base), w["text"], font=font, fill=fill + (255,),
-                  stroke_width=stroke, stroke_fill=(0, 0, 0, 255), anchor="ms")
-    return img
-
-
-def build_word_caption_clips(scenes, scene_timings, total_duration, seed=None):
-    """Return moviepy ImageClips (one per spoken word) ready for CompositeVideoClip."""
-    import numpy as np
-    from moviepy.editor import ImageClip
-
-    chunks = style_chunks(plan_word_events(scenes, scene_timings, total_duration), seed)
-    clips = []
-    for chunk in chunks:
-        for idx, w in enumerate(chunk["words"]):
-            t0 = w["t0"]
-            t1 = chunk["words"][idx + 1]["t0"] if idx + 1 < len(chunk["words"]) else w["t1"]
-            dur = t1 - t0
-            if dur <= 0.03 or t0 >= total_duration:
-                continue
-            dur = min(dur, total_duration - t0)
-            frame = render_chunk_frame(chunk, idx)
-            clip = ImageClip(np.array(frame), transparent=True).set_start(t0).set_duration(dur)
-            y = int(TARGET_H * CAPTION_CENTER_RATIO - frame.height / 2)
-            clips.append(clip.set_position(("center", y)))
-    print(str(len(clips)) + " word-caption frames built")
-    return clips
+        print("Video ready: " + output_path)
+        return output_path
