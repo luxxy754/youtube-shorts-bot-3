@@ -349,12 +349,12 @@ class ShortsComposer:
             codec="libx264",
             audio_codec="aac",
             audio_bitrate="192k",
-            fps=24,                       # 30 se 24 kar diya (tez)
-            preset="ultrafast",           # medium se ultrafast (bohat tez)
-            ffmpeg_params=["-pix_fmt", "yuv420p", "-crf", "23"],  # 22 se 23 (tez)
+            fps=24,
+            preset="ultrafast",
+            ffmpeg_params=["-pix_fmt", "yuv420p", "-crf", "23"],
             temp_audiofile=os.path.join(self.output_dir, "temp_audio.m4a"),
             remove_temp=True,
-            threads=4,                    # multi-threading
+            threads=4,
         )
         return output_path
 
@@ -416,12 +416,14 @@ class ShortsComposer:
                 print("Scene " + str(index + 1) + " ready")
 
             total_duration = timeline
-            print("Total: " + str(round(total_duration, 1)) + "s")
+            print("Total (timeline): " + str(round(total_duration, 1)) + "s")
 
             if not voice_clips:
                 raise RuntimeError("No voice clips ready")
 
             # ---- audio: voice EQ/comp + synthesized SFX + ducked BGM + loudnorm ----
+            # build_final_audio ab khud actual voice duration ke hisaab se master banata hai,
+            # isliye last word cut nahi hota.
             try:
                 master_path = build_final_audio(
                     voiceover_paths[:count],
@@ -432,7 +434,10 @@ class ShortsComposer:
                 )
                 master_clip = AudioFileClip(master_path)
                 opened_audio.append(master_clip)
+
                 real_len = float(master_clip.duration or 0)
+                # WAPAS SAFE: min() use karo, na ki real_len + buffer.
+                # (real_len + buffer karne se captions ka timing toot gaya tha)
                 if real_len > 1.0:
                     total_duration = min(total_duration, real_len - 0.15)
                 final_audio = master_clip
@@ -450,7 +455,7 @@ class ShortsComposer:
 
             overlays = []
 
-            # Word-by-word Hinglish captions (replaces the old block captions)
+            # Word-by-word captions
             if word_scenes:
                 try:
                     from modules.captions import build_word_caption_clips
