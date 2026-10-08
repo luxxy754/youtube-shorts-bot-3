@@ -6,7 +6,11 @@ Har run har channel ke liye ek video banata hai aur use YouTube par SCHEDULE kar
 us window ke andar har channel ka time random (date se seeded) nikalta hai, aur do
 channels kabhi ek dosre ke 40+ minute ke andar nahi aate.
 
-Sab windows PKT (UTC+5) mein hain. Audience: Pakistan + India (IST = PKT + 30 min).
+NAYA: Slots ab US trending hours ke hisaab se set hain (US ET audience ke liye best time):
+  - Slot A: ~16:00-19:00 PKT  ==  6:00-9:00 AM ET   (US morning trending)
+  - Slot B: ~04:00-08:00 PKT  ==  6:00-10:00 PM ET  (US evening prime time, prev day)
+
+Sab windows PKT (UTC+5) mein hain.
 Weekday: 0=Mon ... 6=Sun
 """
 
@@ -16,35 +20,38 @@ from datetime import datetime, timedelta, timezone
 
 PKT = timezone(timedelta(hours=5))
 
-# slot "A" = dopehar / lunch-break, slot "B" = evening prime time.  (start_h:m, end_h:m)
+# slot "A" = US morning (US ET 6-9 AM), slot "B" = US evening prime time (US ET 6-10 PM).
 SLOT_WINDOWS = {
     "A": {
-        0: ("12:10", "13:40"),   # Mon
-        1: ("13:00", "14:30"),   # Tue
-        2: ("11:30", "13:00"),   # Wed
-        3: ("12:30", "14:15"),   # Thu
-        4: ("10:00", "11:50"),   # Fri  (Jummah se pehle - 12 se 2:30 skip)
-        5: ("11:00", "13:15"),   # Sat
-        6: ("10:30", "12:45"),   # Sun
+        0: ("16:00", "19:00"),   # Mon  -> 6-9 AM ET
+        1: ("16:30", "19:30"),   # Tue
+        2: ("15:30", "18:30"),   # Wed
+        3: ("16:00", "19:00"),   # Thu
+        4: ("15:00", "18:00"),   # Fri
+        5: ("16:00", "19:00"),   # Sat
+        6: ("15:30", "18:30"),   # Sun
     },
     "B": {
-        0: ("19:00", "21:10"),   # Mon
-        1: ("20:00", "22:15"),   # Tue
-        2: ("18:30", "20:40"),   # Wed
-        3: ("20:30", "22:40"),   # Thu
-        4: ("18:15", "20:30"),   # Fri  (Jummah ke baad)
-        5: ("20:00", "22:45"),   # Sat
-        6: ("17:00", "19:45"),   # Sun
+        0: ("04:00", "08:00"),   # Mon  -> 6-10 PM ET (prev day)
+        1: ("04:30", "08:30"),   # Tue
+        2: ("03:30", "07:30"),   # Wed
+        3: ("04:00", "08:00"),   # Thu
+        4: ("03:00", "07:00"),   # Fri
+        5: ("04:00", "08:00"),   # Sat
+        6: ("03:30", "07:30"),   # Sun
     },
 }
 
-MIN_GAP_MIN = 40        # ek hi slot mein do channels ke beech kam se kam gap
-MIN_LEAD_MIN = 25       # publish time "ab" se kam se kam itna aage hona chahiye
+MIN_GAP_MIN = 40
+MIN_LEAD_MIN = 25
 
 # GitHub cron string -> slot.  (run.yml ke cron lines se match karna chahiye)
+# PKT = UTC+5, to:
+#   16:00 PKT = 11:00 UTC  -> Slot A
+#   04:00 PKT = 23:00 UTC  -> Slot B
 CRON_TO_SLOT = {
-    "7 2 * * *": "A",
-    "23 9 * * *": "B",
+    "0 11 * * *": "A",
+    "0 23 * * *": "B",
 }
 
 
@@ -78,7 +85,6 @@ def plan_publish_times(n_channels, slot, now_utc=None):
     midnight = datetime(day.year, day.month, day.day, tzinfo=PKT)
     earliest = now_pkt + timedelta(minutes=MIN_LEAD_MIN)
 
-    # chhoti window mein 3 channels fit karne ke liye gap automatically ghata do
     gap_min = max(15, min(MIN_GAP_MIN, (end_m - start_m) // max(1, n_channels) - 3))
 
     chosen = []
@@ -86,7 +92,6 @@ def plan_publish_times(n_channels, slot, now_utc=None):
         pick = None
         for _try in range(200):
             minute = rng.randint(start_m, end_m)
-            # round numbers (:00 / :30) se bacho - thoda "human" lage
             if minute % 30 == 0:
                 minute += rng.choice([-3, -2, 2, 3, 4, 7])
             cand = midnight + timedelta(minutes=minute)
@@ -96,7 +101,6 @@ def plan_publish_times(n_channels, slot, now_utc=None):
                 pick = cand
                 break
         if pick is None:
-            # window nikal gayi (run late hua) ya jagah nahi bachi -> last chosen ke baad stagger
             base = max([earliest] + chosen)
             pick = base + timedelta(minutes=MIN_GAP_MIN + rng.randint(3, 25))
         chosen.append(pick)
