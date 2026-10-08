@@ -113,15 +113,15 @@ jobs:
         TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
         TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
         TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
-        WORD_CAPTIONS: '1'     # Roman Hinglish word-by-word captions ON
+        WORD_CAPTIONS: '1'     # English word-by-word captions ON
         ENABLE_CAPTIONS: '0'
-        CAPTION_WORDS: '1'     # 1 = ek waqt mein ek lafz (agar 2/3 chahiye to yahan badlo)
+        CAPTION_WORDS: '2'     # 2 = do lafz ek saath (English ke liye best)
         LOOP_VIDEO: '1'        # seamless loop ending (replay badhane ke liye)
         SCHEDULE_CRON: ${{ github.event.schedule }}
         PUBLISH_NOW: ${{ github.event.inputs.publish_now }}
         HOOK_CAPTION: '1'
-        TTS_VOICE: 'hi-IN-MadhurNeural'
-        TTS_RATE: '+8%'
+        TTS_VOICE: 'en-US-AndrewNeural'
+        TTS_RATE: '+6%'
       run: python main.py
 
     - name: Commit used_topics.json back to repo
