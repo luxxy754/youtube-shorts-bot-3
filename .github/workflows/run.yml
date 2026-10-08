@@ -2,11 +2,11 @@ name: Auto Generate and Post YouTube Shorts
 
 on:
   schedule:
-    # Roz 2 runs (UTC). Har run har channel ke liye 1 video banata hai aur use
-    # YouTube par SCHEDULE kar deta hai (publishAt) - asli publish time main.py ke
-    # SLOT_WINDOWS se har din / har channel ke liye alag nikalta hai.
-    - cron: '7 2 * * *'     # Run A = 07:07 PKT  -> din ka pehla slot (dopehar)
-    - cron: '23 9 * * *'    # Run B = 14:23 PKT  -> raat ka slot (evening prime time)
+    # US trending hours ke hisaab se 2 runs (PKT = UTC+5):
+    #   Run A: 11:00 UTC = 16:00 PKT = 6:00 AM ET  (US morning trending)
+    #   Run B: 23:00 UTC = 04:00 PKT = 6:00 PM ET  (US evening prime time, previous day)
+    - cron: '0 11 * * *'    # Run A -> Slot A (US morning)
+    - cron: '0 23 * * *'    # Run B -> Slot B (US evening)
   workflow_dispatch:
     inputs:
       publish_now:
@@ -41,7 +41,6 @@ jobs:
     - name: Install System Dependencies
       timeout-minutes: 15
       run: |
-        # azure.archive.ubuntu.com mirror hang ho raha tha -> seedha main mirror use karo
         sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/apt-mirrors.txt || true
         sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
 
@@ -113,10 +112,10 @@ jobs:
         TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
         TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
         TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
-        WORD_CAPTIONS: '1'     # English word-by-word captions ON
+        WORD_CAPTIONS: '1'
         ENABLE_CAPTIONS: '0'
-        CAPTION_WORDS: '2'     # 2 = do lafz ek saath (English ke liye best)
-        LOOP_VIDEO: '1'        # seamless loop ending (replay badhane ke liye)
+        CAPTION_WORDS: '2'
+        LOOP_VIDEO: '1'
         SCHEDULE_CRON: ${{ github.event.schedule }}
         PUBLISH_NOW: ${{ github.event.inputs.publish_now }}
         HOOK_CAPTION: '1'
