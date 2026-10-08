@@ -91,7 +91,7 @@ BASE_TAGS = [
 def get_youtube_channels():
     """
     Channel 1 = existing secrets.
-    Channel 2 is OPTIONAL: used only when YOUTUBE_REFRESH_TOKEN_2 is set.
+    Channel 2, 3... OPTIONAL: tab add hote hain jab YOUTUBE_REFRESH_TOKEN_2, _3 ... set ho.
     Har channel ka apna independent pipeline chalega.
     """
     channels = [{
@@ -101,14 +101,17 @@ def get_youtube_channels():
         "refresh_token": YOUTUBE_REFRESH_TOKEN,
         "playlist_id": YOUTUBE_PLAYLIST_ID,
     }]
-    token2 = os.getenv("YOUTUBE_REFRESH_TOKEN_2")
-    if token2:
+    # Channel 2, 3, 4... : jis number ka YOUTUBE_REFRESH_TOKEN_N set ho, wo channel add hoga
+    for n in range(2, 11):
+        token = os.getenv(f"YOUTUBE_REFRESH_TOKEN_{n}")
+        if not token:
+            continue
         channels.append({
-            "name": "Channel 2",
-            "client_id": os.getenv("YOUTUBE_CLIENT_ID_2") or YOUTUBE_CLIENT_ID,
-            "client_secret": os.getenv("YOUTUBE_CLIENT_SECRET_2") or YOUTUBE_CLIENT_SECRET,
-            "refresh_token": token2,
-            "playlist_id": os.getenv("YOUTUBE_PLAYLIST_ID_2", ""),
+            "name": f"Channel {n}",
+            "client_id": os.getenv(f"YOUTUBE_CLIENT_ID_{n}") or YOUTUBE_CLIENT_ID,
+            "client_secret": os.getenv(f"YOUTUBE_CLIENT_SECRET_{n}") or YOUTUBE_CLIENT_SECRET,
+            "refresh_token": token,
+            "playlist_id": os.getenv(f"YOUTUBE_PLAYLIST_ID_{n}", ""),
         })
     return channels
 
