@@ -66,8 +66,10 @@ def _run(cmd, timeout=180):
 
 def _trim_silence(path):
     """
-    Trim head/tail silence, remove rumble, add tiny fade-in and fade-out
-    (fade-out prevents the click/abrupt cut at the end of a scene).
+    Trim head/tail silence, remove rumble, add a tiny fade-in (no clicks).
+
+    NOTE: fade-out yahan NAHI lagate. Pehle galti se `afade=t=out:st=0` laga tha
+    jo audio ke shuru mein hi fade-out kar deta tha aur poori voice dab jaati thi.
     """
     tmp = path + ".trim.mp3"
     k = SILENCE_KEEP
@@ -77,8 +79,7 @@ def _trim_silence(path):
         f"silenceremove=start_periods=1:start_threshold={SILENCE_TRIM_DB}:start_silence={k},"
         f"areverse,"
         f"highpass=f=80,"
-        f"afade=t=in:d=0.005,"
-        f"afade=t=out:st=0:d=0.005"
+        f"afade=t=in:d=0.005"
     )
     cmd = ["ffmpeg", "-y", "-i", path, "-af", af, "-ar", str(SR), "-b:a", "192k", tmp]
     try:
@@ -310,8 +311,9 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
 
     FIX: pehle 'atrim=0:{total_duration}' last word ke beech audio cut kar deta tha
     (dynaudnorm / alimiter ki wajah se effective duration badal jaati hai).
-    Ab hum real voice track ki actual duration measure karte hain aur uske hisaab
-    se master ka end nikalte hain, saath hi thoda tail buffer bhi rakhte hain.
+    Ab hum actual voice track ki real duration measure karte hain aur uske hisaab
+    se master ka end nikalte hain, saath hi 0.25s ka tail rakhte hain taake aakhri
+    lafz poora sunai de aur koi abrupt cut na ho. Koi extra fade-out NAHI lagate.
     """
     os.makedirs(out_dir, exist_ok=True)
     voice_wav = os.path.join(out_dir, "voice_track.wav")
@@ -321,14 +323,13 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
     _build_voice_track(voice_paths, scene_timings, total_duration, voice_wav)
     build_sfx_track(scene_timings, total_duration, sfx_wav)
 
-    # ---- FIX: actual voice duration measure karo ----
+    # actual voice duration measure karo (amix ke baad jo actual file bani)
     actual_voice_duration = _probe_duration(voice_wav)
     if actual_voice_duration <= 1.0:
         actual_voice_duration = total_duration
 
-    # Master end = voice end + chhota tail buffer.
-    # Isse last word ke baad ~0.35s natural decay milti hai, abrupt cut nahi hota.
-    master_duration = max(total_duration, actual_voice_duration) + 0.35
+    # master end = actual voice end + 0.25s chhota tail (koi abrupt cut nahi)
+    master_duration = actual_voice_duration + 0.25
     print(f"Audio master duration: {master_duration:.2f}s "
           f"(voice={actual_voice_duration:.2f}s, timeline={total_duration:.2f}s)")
 
@@ -373,12 +374,10 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
             "[vmix][sfx]amix=inputs=2:normalize=0:duration=first[mix];"
         )
 
-    # FIX: dynaudnorm ke baad atrim ab master_duration par (safe, tail buffer ke saath).
-    # Aakhir mein 0.15s ka fade-out taake end bilkul clean ho.
+    # atrim = master_duration (actual voice + 0.25s). Koi extra fade-out nahi.
     graph += (
         "[mix]dynaudnorm=f=150:g=15:p=0.9,"
         f"atrim=0:{master_duration:.3f},"
-        f"afade=t=out:st={max(0.0, master_duration - 0.15):.3f}:d=0.15,"
         "alimiter=limit=0.97[master]"
     )
 
