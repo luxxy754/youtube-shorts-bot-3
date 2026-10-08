@@ -21,12 +21,6 @@ import edge_tts
 SR = 44100
 
 # ---------------------------------------------------------------- voice ----
-# Male voice is LOCKED for every scene. gTTS fallback was removed because gTTS
-# only has a female voice, which made the gender flip between scenes whenever
-# Edge TTS failed once. If Edge TTS fails we retry the SAME voice instead.
-# English voice. Good options: en-US-AndrewNeural (warm, natural - default), en-US-GuyNeural (deeper, documentary),
-# en-US-ChristopherNeural, en-US-BrianNeural. Override with TTS_VOICE. A non-English voice (e.g. an old
-# hi-IN value left in the workflow) is ignored, because it would read English text with a Hindi accent.
 _DEFAULT_VOICE = "en-US-AndrewNeural"
 VOICE = os.getenv("TTS_VOICE", _DEFAULT_VOICE)
 if not VOICE.lower().startswith("en-"):
@@ -37,21 +31,18 @@ VOICE_RATE = os.getenv("TTS_RATE", "+6%")
 VOICE_PITCH = "+0Hz"
 VOICE_VOLUME = "+0%"
 
-# Old value was 0.3s, which KEPT 0.3s of silence at both ends of every scene
-# (~0.6s dead air between sentences). Keep only a tiny natural breath now.
 SILENCE_TRIM_DB = "-42dB"
 SILENCE_KEEP = 0.06
 INTER_SCENE_PAUSE = 0.12
 
 
 async def _tts_async(text, output_path, rate, pitch):
-    """Audio save karta hai aur saath mein edge-tts ke WordBoundary events return karta hai."""
     try:
         communicate = edge_tts.Communicate(
             text=text, voice=VOICE, rate=rate, pitch=pitch, volume=VOICE_VOLUME,
             boundary="WordBoundary",
         )
-    except TypeError:   # purani edge-tts: boundary argument nahi hota (default WordBoundary)
+    except TypeError:
         communicate = edge_tts.Communicate(
             text=text, voice=VOICE, rate=rate, pitch=pitch, volume=VOICE_VOLUME
         )
@@ -63,7 +54,7 @@ async def _tts_async(text, output_path, rate, pitch):
             elif chunk["type"] == "WordBoundary":
                 words.append({
                     "text": chunk.get("text", ""),
-                    "start": chunk["offset"] / 1e7,                       # 100ns -> sec
+                    "start": chunk["offset"] / 1e7,
                     "end": (chunk["offset"] + chunk.get("duration", 0)) / 1e7,
                 })
     return words
@@ -74,7 +65,10 @@ def _run(cmd, timeout=180):
 
 
 def _trim_silence(path):
-    """Trim head/tail silence, remove rumble, add a tiny fade-in (no clicks)."""
+    """
+    Trim head/tail silence, remove rumble, add tiny fade-in and fade-out
+    (fade-out prevents the click/abrupt cut at the end of a scene).
+    """
     tmp = path + ".trim.mp3"
     k = SILENCE_KEEP
     af = (
@@ -83,7 +77,8 @@ def _trim_silence(path):
         f"silenceremove=start_periods=1:start_threshold={SILENCE_TRIM_DB}:start_silence={k},"
         f"areverse,"
         f"highpass=f=80,"
-        f"afade=t=in:d=0.005"
+        f"afade=t=in:d=0.005,"
+        f"afade=t=out:st=0:d=0.005"
     )
     cmd = ["ffmpeg", "-y", "-i", path, "-af", af, "-ar", str(SR), "-b:a", "192k", tmp]
     try:
@@ -99,14 +94,13 @@ def _trim_silence(path):
 
 
 def _save_word_times(audio_path, words):
-    """Word timings ko trim ke baad ke audio ke hisaab se shift karke <audio>.words.json mein rakho."""
     wt_path = audio_path + ".words.json"
     try:
         if os.path.exists(wt_path):
             os.remove(wt_path)
         if not words:
             return
-        shift = max(0.0, words[0]["start"] - SILENCE_KEEP)   # head silence jo trim hui
+        shift = max(0.0, words[0]["start"] - SILENCE_KEEP)
         out = [{"text": w["text"],
                 "start": round(max(0.0, w["start"] - shift), 3),
                 "end": round(max(0.0, w["end"] - shift), 3)} for w in words]
@@ -118,7 +112,6 @@ def _save_word_times(audio_path, words):
 
 
 def generate_voiceover(text, output_path, rate=None, pitch=None):
-    """One scene of narration -> mp3 (trimmed). Always the same male Edge voice."""
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     clean = " ".join(str(text).split())
     if not clean:
@@ -140,7 +133,6 @@ def generate_voiceover(text, output_path, rate=None, pitch=None):
             print(f"Edge TTS ({VOICE}) attempt {attempt}/{TTS_RETRIES} failed: {e}")
             time.sleep(1.5 * attempt)
 
-    # Do NOT fall back to another (female) voice - fail loudly instead.
     raise RuntimeError(f"Male voice ({VOICE}) generate nahi hui: {last_err}")
 
 
@@ -155,7 +147,6 @@ def _t(dur):
 
 
 def _svf_bandpass_sweep(noise, f_start, f_end, q=2.0):
-    """State-variable band-pass with a moving centre frequency (pure numpy loop)."""
     n = len(noise)
     freqs = np.geomspace(f_start, f_end, n)
     f = 2.0 * np.sin(np.pi * freqs / SR)
@@ -193,7 +184,6 @@ def synth_riser(dur=1.0, rng=None):
 
 
 def synth_boom(dur=1.0, rng=None):
-    """Cinematic low hit: falling sine + short noise thump, soft-clipped."""
     rng = rng or np.random.default_rng()
     t = _t(dur)
     freq = 38 + (110 - 38) * np.exp(-t * 9)
@@ -236,14 +226,6 @@ def _place(track, sample, start_sec, gain):
 
 
 def build_sfx_track(scene_timings, total_duration, out_path, seed=None):
-    """
-    scene_timings: [(start_sec, voice_duration), ...]
-    Placement:
-      - hook: deep boom at 0.0
-      - every cut: whoosh (alternating direction for variety)
-      - twist scene (second-last): riser leading in + boom on the reveal
-      - last scene (CTA): soft ding + pop
-    """
     rng = np.random.default_rng(seed if seed is not None else random.randrange(1 << 30))
     n = int(SR * (total_duration + 1.5))
     track = np.zeros(n, dtype=np.float32)
@@ -311,15 +293,25 @@ def _build_voice_track(voice_paths, scene_timings, total_duration, out_path):
     return out_path
 
 
+def _probe_duration(path):
+    try:
+        probe = _run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                      "-of", "default=nw=1:nk=1", path], 30)
+        return float(probe.stdout.strip())
+    except Exception:
+        return 0.0
+
+
 def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
                       out_dir="assets/mix", out_name="final_audio.wav",
                       bgm_level=0.55, sfx_level=0.9):
     """
     Returns the path of the finished master (WAV; moviepy encodes AAC once).
-    Chain:
-      voice -> EQ + compressor (clear, forward)      \
-      bgm   -> looped, ducked by the voice (sidechain) }-> amix -> dynaudnorm -> limiter
-      sfx   -> synthesized track                     /
+
+    FIX: pehle 'atrim=0:{total_duration}' last word ke beech audio cut kar deta tha
+    (dynaudnorm / alimiter ki wajah se effective duration badal jaati hai).
+    Ab hum real voice track ki actual duration measure karte hain aur uske hisaab
+    se master ka end nikalte hain, saath hi thoda tail buffer bhi rakhte hain.
     """
     os.makedirs(out_dir, exist_ok=True)
     voice_wav = os.path.join(out_dir, "voice_track.wav")
@@ -328,6 +320,17 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
 
     _build_voice_track(voice_paths, scene_timings, total_duration, voice_wav)
     build_sfx_track(scene_timings, total_duration, sfx_wav)
+
+    # ---- FIX: actual voice duration measure karo ----
+    actual_voice_duration = _probe_duration(voice_wav)
+    if actual_voice_duration <= 1.0:
+        actual_voice_duration = total_duration
+
+    # Master end = voice end + chhota tail buffer.
+    # Isse last word ke baad ~0.35s natural decay milti hai, abrupt cut nahi hota.
+    master_duration = max(total_duration, actual_voice_duration) + 0.35
+    print(f"Audio master duration: {master_duration:.2f}s "
+          f"(voice={actual_voice_duration:.2f}s, timeline={total_duration:.2f}s)")
 
     inputs = ["-i", voice_wav, "-i", sfx_wav]
     has_bgm = bool(bg_music_path and os.path.exists(bg_music_path)
@@ -343,23 +346,21 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
 
     if has_bgm:
         try:
-            probe = _run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                          "-of", "default=nw=1:nk=1", bg_music_path], 30)
-            bgm_len = float(probe.stdout.strip())
+            bgm_len = _probe_duration(bg_music_path)
         except Exception:
             bgm_len = 0.0
-        start = (random.uniform(0, bgm_len - total_duration - 1)
-                 if bgm_len > total_duration + 2 else 0.0)
+        start = (random.uniform(0, bgm_len - master_duration - 1)
+                 if bgm_len > master_duration + 2 else 0.0)
         inputs += ["-stream_loop", "-1", "-ss", f"{start:.2f}", "-i", bg_music_path]
 
         graph = (
             f"{voice_chain}[vc];"
             "[vc]asplit=2[vmix][vside];"
-            f"[2:a]atrim=0:{total_duration:.3f},asetpts=N/SR/TB,"
+            f"[2:a]atrim=0:{master_duration:.3f},asetpts=N/SR/TB,"
             "aformat=channel_layouts=stereo,"
             "highpass=f=60,lowpass=f=9000,"
             f"volume={bgm_level},"
-            f"afade=t=in:d=0.6" + ("" if os.getenv("LOOP_VIDEO", "1") == "1" else f",afade=t=out:st={max(0.0, total_duration - 1.2):.2f}:d=1.2") + "[bgm];"
+            f"afade=t=in:d=0.6,afade=t=out:st={max(0.0, master_duration - 1.2):.2f}:d=1.2[bgm];"
             "[bgm][vside]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=350:makeup=1[bgduck];"
             f"[1:a]volume={sfx_level}[sfx];"
             "[vmix][bgduck][sfx]amix=inputs=3:normalize=0:duration=first[mix];"
@@ -372,9 +373,12 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
             "[vmix][sfx]amix=inputs=2:normalize=0:duration=first[mix];"
         )
 
+    # FIX: dynaudnorm ke baad atrim ab master_duration par (safe, tail buffer ke saath).
+    # Aakhir mein 0.15s ka fade-out taake end bilkul clean ho.
     graph += (
         "[mix]dynaudnorm=f=150:g=15:p=0.9,"
-        f"atrim=0:{total_duration:.3f},"
+        f"atrim=0:{master_duration:.3f},"
+        f"afade=t=out:st={max(0.0, master_duration - 0.15):.3f}:d=0.15,"
         "alimiter=limit=0.97[master]"
     )
 
