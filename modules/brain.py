@@ -278,8 +278,8 @@ _SCHEMA = """{
   "title": "English title, max 58 chars, one emoji, no hashtags, specific + curiosity-driven, honest (never generic like 'You Won't Believe This')",
   "hook_text": "3-6 word on-screen text shown in the FIRST 2 seconds, English, makes sense with sound off, opens a curiosity gap that the video really pays off",
   "comment_cta": "ONE short on-screen question for the last 2-3 seconds, 4-9 words, that makes people answer in the comments (e.g. 'Have you ever caught yourself doing this?'). Must relate to THIS video's topic, no 'like/subscribe'",
-  "description": "2-3 short English lines + one line of search keywords. No hashtags.",
-  "tags": ["15-20 lowercase english tags"],
+  "description": "2-3 short engaging English lines focused purely on psychological facts, human behaviour, and mind secrets + one line of relevant psychological search keywords. No hashtags.",
+  "tags": ["15-20 lowercase english tags related to psychology, mind facts, and human behavior"],
   "scenes": [
     {
       "narration": "ONE spoken English sentence (or fragment), 4-12 words",
@@ -295,7 +295,7 @@ def _writer_prompt(plan):
     avoid = "\n".join(f"- {a}" for a in plan["avoid"]) or "- (nothing yet)"
     return f"""
 You are the head writer of a top English-language YouTube Shorts channel about PSYCHOLOGY FACTS
-(why people think, feel and behave the way they do). No brain tricks, no animal/space/random trivia.
+(why people think, feel and behave the way they do). No science experiments, no magic tricks, no animal/space/random trivia.
 Write ONE fresh 20-26 second Short. The goal is MAXIMUM "stayed to watch" and REPLAYS: most viewers should
 watch to the end and then watch again 2-3 times because the ending flows straight back into the start.
 
@@ -377,7 +377,7 @@ VISUALS (picture must MATCH the sentence - this is the #1 quality problem, so be
   picture agree word for word. If a sentence has no filmable situation, rewrite the sentence.
 - Scene 1 keyword must be the most dramatic, eye-catching footage: BRIGHT, high-contrast, one clear
   person in closeup (face, hands, phone). Avoid dark, murky, empty, abstract or generic shots.
-- Never use brain animations, neurons, galaxies, glowing abstract backgrounds, nature, animals or space.
+- Never use brain animations, neurons, galaxies, glowing abstract backgrounds, nature, animals, science experiments or space.
 - Every scene must have a DIFFERENT keyword (the last scene's footage is replaced by scene 1's footage automatically for the loop).
 
 Return ONLY valid JSON, exactly this shape:
@@ -407,10 +407,10 @@ CHECKLIST
    something new on a second watch. No begging for likes/follows.
 6. VISUAL MATCH: for every scene, search_keyword must be a concrete filmable situation of ordinary people
    (person + action + place, 2-4 English words) that literally shows what the spoken line says; no abstract
-   concepts, no brain animations, no nature/space/animals. Add search_keyword_alt (2-3 simpler words) as backup.
+   concepts, no science experiments, no brain animations, no nature/space/animals. Add search_keyword_alt (2-3 simpler words) as backup.
    Different keyword in every scene. Scene 1 keyword = bright, high-contrast, closeup of a person, never dark/generic.
    If a line cannot be filmed, rewrite the line so it names something visible.
-7. Title: English, max 58 chars, one emoji, honest (no false promise). Description and tags in English.
+7. Title & Description: English title, max 58 chars, one emoji. Description MUST be 2-3 lines about psychology facts and human behavior, followed by relevant psychology search keywords. Absolutely NO science experiment topics in description.
 8. comment_cta: keep or write ONE on-screen question (4-9 words) tied to this topic that is easy to answer in the
    comments ('Have you noticed this too?'). Not spoken, so it must not change the loop. No like/subscribe begging.
 9. hook_text: 3-6 words with one power word, a visual shock that works muted.
