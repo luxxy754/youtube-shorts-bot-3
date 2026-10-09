@@ -120,7 +120,7 @@ jobs:
         PUBLISH_NOW: ${{ github.event.inputs.publish_now }}
         HOOK_CAPTION: '1'
         TTS_VOICE: 'en-US-AndrewNeural'
-        TTS_RATE: '+6%'
+        TTS_RATE: '+8%'
       run: python main.py
 
     - name: Commit used_topics.json back to repo
