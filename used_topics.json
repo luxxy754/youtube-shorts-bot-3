@@ -596,6 +596,31 @@
       "fact": "People adopt the emotional tone and vocabulary of strangers they interact with briefly, known as linguistic and emotional contagion in social groups.",
       "video_id": "FUtq1HTQA-k",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-09T17:23:14",
+      "category": "memory: why we forget, false memories, why we remember some things forever",
+      "format": "top3",
+      "title": "Why your sharpest memories keep changing 🧠",
+      "fact": "Human memory is reconstructive rather than reproductive; memory reconsolidation alters details every time a memory is retrieved, destination memory causes people to forget who they told stories to, and the Google effect weakens recall of easily searchable facts."
+    },
+    {
+      "date": "2026-10-09T17:26:08",
+      "category": "everyday human behaviour: why people do small things in daily life (phone, friends, family, work)",
+      "format": "psychology_effect",
+      "title": "Why asking for help makes friends 🧠",
+      "fact": "The Ben Franklin effect shows that performing a favor for someone makes us like them more because our brain seeks cognitive consistency.",
+      "video_id": "K1CHOlQthwI",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-09T17:28:58",
+      "category": "focus and attention: why the mind wanders, multitasking, distraction",
+      "format": "myth_vs_truth",
+      "title": "Why your brain rehearses fake arguments 🧠",
+      "fact": "Mentally rehearsing conversations is a defense mechanism because the brain processes social rejection using the same neural pathways as physical pain.",
+      "video_id": "t8FvFdPzvLo",
+      "channel": "Channel 3"
     }
   ]
 }
