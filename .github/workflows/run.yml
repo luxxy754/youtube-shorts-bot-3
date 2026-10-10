@@ -2,14 +2,17 @@ name: Auto Generate and Post YouTube Shorts
 
 on:
   schedule:
-    # ONE short per day. The cron only WAKES the workflow up every hour; the `gate`
-    # job (modules/post_schedule.py) picks a random hour per day inside US waking hours
-    # (10:00-22:00 US Eastern = 7 AM-7 PM Pacific), posts once, then stays quiet.
-    # Hours below cover both daylight-saving and standard time (UTC).
-    - cron: '7 14-23 * * *'
-    - cron: '7 0-2 * * *'
-
+    # US trending hours (PKT = UTC+5):
+    #   Run A: 11:00 UTC = 16:00 PKT = 6:00 AM ET  (US morning trending)
+    #   Run B: 23:00 UTC = 04:00 PKT = 6:00 PM ET  (US evening prime time)
+    - cron: '0 11 * * *'
+    - cron: '0 23 * * *'
   workflow_dispatch:
+    inputs:
+      publish_now:
+        description: 'Manual test: schedule ke bajaye foran public upload'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -19,39 +22,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  gate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      go: ${{ steps.decide.outputs.go }}
-      delay: ${{ steps.decide.outputs.delay }}
-    steps:
-    - name: Checkout (for post_state.json)
-      uses: actions/checkout@v4
-    - name: Decide if today's short should be posted now
-      id: decide
-      env:
-        EVENT_NAME: ${{ github.event_name }}
-        POST_WINDOW_START: '10'      # US Eastern, inclusive
-        POST_WINDOW_END: '22'        # US Eastern, exclusive
-        POST_MAX_DELAY_MIN: '45'     # extra random minutes so the minute is random too
-        SCHEDULE_SALT: ${{ secrets.SCHEDULE_SALT }}
-      run: python3 modules/post_schedule.py gate
-
   build-and-run:
-    needs: gate
-    if: needs.gate.outputs.go == 'true'
-    runs-on: ubuntu-latest
-    # random delay (max ~45 min) + build/upload (~15 min) -> keep headroom
-    timeout-minutes: 90
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
 
     steps:
-    - name: Random minute offset (decided by gate job)
-      if: needs.gate.outputs.delay != '0'
-      run: |
-        echo "Sleeping ${{ needs.gate.outputs.delay }} s so the upload minute is random..."
-        sleep ${{ needs.gate.outputs.delay }}
-
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
@@ -64,43 +39,47 @@ jobs:
         cache: 'pip'
 
     - name: Install System Dependencies
+      timeout-minutes: 15
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
+        sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/apt-mirrors.txt || true
+        sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+
+        APT_OPTS="-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20"
+
+        for i in 1 2 3; do
+          sudo apt-get $APT_OPTS update && break
+          echo "apt-get update failed (attempt $i), retrying..."
+          sleep 10
+        done
+
+        sudo apt-get $APT_OPTS install -y --no-install-recommends \
           ffmpeg \
-          espeak-ng \
           imagemagick \
           libjpeg-dev \
           zlib1g-dev \
           libpng-dev \
           libfreetype6-dev \
+          fonts-deva \
           fonts-noto \
           fonts-noto-color-emoji \
           fonts-dejavu \
           fonts-dejavu-core \
           fonts-liberation \
           fontconfig
-        sudo fc-cache -f -v
+        sudo fc-cache -f
 
     - name: Fix ImageMagick Policy
       run: |
         sudo sed -i 's/rights="none" pattern="@\*"/rights="read|write" pattern="@*"/' /etc/ImageMagick-6/policy.xml || true
         sudo sed -i 's/policy domain="coder" rights="none" pattern="PDF"/policy domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
-
-    - name: Cache Kokoro voice model
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/huggingface
-        key: kokoro-82m-v1
+        convert -version || magick -version || echo "ImageMagick check failed"
 
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        # CPU-only torch (the default wheel pulls ~2 GB of CUDA libs we never use)
-        pip install torch --index-url https://download.pytorch.org/whl/cpu
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Verify Fonts + FFmpeg
+    - name: Verify Fonts + ImageMagick
       run: |
         echo "=== DejaVu fonts ==="
         ls -la /usr/share/fonts/truetype/dejavu/ || echo "DejaVu fonts not found"
@@ -108,13 +87,10 @@ jobs:
         ls -la /usr/share/fonts/truetype/liberation/ || echo "Liberation fonts not found"
         echo "=== fc-list check ==="
         fc-list | grep -i "dejavu\|liberation" | head -5
-        echo "=== FFmpeg ==="
-        ffmpeg -version | head -1
-        echo "=== edge-tts version ==="
-        pip show edge-tts | grep Version || echo "edge-tts not installed"
+        echo "=== ImageMagick check ==="
+        which convert || which magick || echo "ImageMagick NOT FOUND"
 
     - name: Run Auto-Generation & Auto-Posting Script
-      timeout-minutes: 30
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
@@ -123,45 +99,40 @@ jobs:
         YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
         YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         YOUTUBE_PLAYLIST_ID: ${{ secrets.YOUTUBE_PLAYLIST_ID }}
+        YOUTUBE_CLIENT_ID_2: ${{ secrets.YOUTUBE_CLIENT_ID_2 }}
+        YOUTUBE_CLIENT_SECRET_2: ${{ secrets.YOUTUBE_CLIENT_SECRET_2 }}
+        YOUTUBE_REFRESH_TOKEN_2: ${{ secrets.YOUTUBE_REFRESH_TOKEN_2 }}
+        YOUTUBE_PLAYLIST_ID_2: ${{ secrets.YOUTUBE_PLAYLIST_ID_2 }}
+        YOUTUBE_CLIENT_ID_3: ${{ secrets.YOUTUBE_CLIENT_ID_3 }}
+        YOUTUBE_CLIENT_SECRET_3: ${{ secrets.YOUTUBE_CLIENT_SECRET_3 }}
+        YOUTUBE_REFRESH_TOKEN_3: ${{ secrets.YOUTUBE_REFRESH_TOKEN_3 }}
+        YOUTUBE_PLAYLIST_ID_3: ${{ secrets.YOUTUBE_PLAYLIST_ID_3 }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
         TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
         TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
-
-        # Captions
         WORD_CAPTIONS: '1'
         ENABLE_CAPTIONS: '0'
+        CAPTION_WORDS: '2'
+        LOOP_VIDEO: '1'
+        HOOK_TEXT: '1'
+        SCHEDULE_CRON: ${{ github.event.schedule }}
+        PUBLISH_NOW: ${{ github.event.inputs.publish_now }}
         HOOK_CAPTION: '1'
-
-        # Voice engine: Kokoro (natural, local) first, Edge-TTS only as fallback
-        TTS_ENGINE: 'auto'
-        KOKORO_VOICE: 'af_heart'        # female, best quality. Male: 'am_michael'
-        SHOT_SECONDS: '2.0'             # a new stock clip about every 2 s
-        PRO_FX: '1'                     # ffmpeg hook glitch + per-cut kick/shake/blur/flash
-
-        # Edge-TTS fallback chain
-        TTS_VOICE_PRIMARY: 'en-US-AndrewMultilingualNeural'
-        TTS_VOICE_FALLBACK1: 'en-US-BrianMultilingualNeural'
-        TTS_VOICE_FALLBACK2: 'en-US-GuyNeural'
-        TTS_VOICE_FALLBACK3: 'en-GB-RyanNeural'
-
-        # Voice speed = natural (~1.07x)
-        TTS_RATE: '+7%'
-        TTS_PITCH: '+0Hz'
-
-        # Last scene re-uses the hook footage -> seamless visual loop
-        LOOP_VISUAL: '1'
+        TTS_VOICE: 'en-US-AndrewNeural'
+        TTS_RATE: '+8%'
+        # SHOT_SECONDS no longer fixed here: modules/style_variation.py picks it per video
+        PRO_FX: '1'
       run: python main.py
 
     - name: Commit used_topics.json back to repo
       if: always()
       run: |
-        if [ -f used_topics.json ] || [ -f post_state.json ]; then
+        if [ -f used_topics.json ]; then
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          [ -f used_topics.json ] && git add used_topics.json || true
-          [ -f post_state.json ] && git add post_state.json || true
+          git add used_topics.json
           git diff --staged --quiet || git commit -m "chore: update used_topics [skip ci]"
           git pull --rebase || true
           git push || echo "Push failed, skipping"
