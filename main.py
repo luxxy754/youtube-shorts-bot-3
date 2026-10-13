@@ -28,6 +28,7 @@ from modules.brain import generate_script, record_history, attach_video_id
 from modules.post_schedule import mark_posted
 from modules.style_variation import get_style
 from modules import bgm_pool
+from modules import bgm_fetcher           # <-- NEW: one-time BGM downloader
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
@@ -103,8 +104,6 @@ COMMENT_CTA_POOL = [
 ]
 
 # Only 5 base tags now (was 15). The model supplies 12-20 SPECIFIC tags per video.
-# We merge these in as a small fallback so the video always has the channel's
-# anchor tags without the "same 15 every time" pattern.
 ANCHOR_TAGS = [
     "psychology facts", "human behavior", "psychology shorts",
     "shorts", "mind facts",
@@ -543,8 +542,7 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
     print(f"\n[{name}] Composing final video...")
     composer = ShortsComposer(output_dir=ch_output_dir)
 
-    # BGM: per-channel rotation (channel 1 & 2 & 3 never use the same track on
-    # the same day when the pool has enough files). Uses modules.bgm_pool.
+    # BGM: per-channel rotation via modules.bgm_pool (LRU, no same track twice)
     bg_music_path = bgm_pool.pick_bgm(channel_index)
     if bg_music_path:
         print(f"[{name}] BG music: {bg_music_path}")
@@ -717,6 +715,10 @@ def load_plan(channels):
 
 def main():
     print("Starting Automated Short Pipeline...")
+
+    # ---- One-time BGM pool download (skips if pool already has enough) ----
+    bgm_fetcher.ensure_bgm_pool()
+
     channels = get_youtube_channels()
     print(f"Found {len(channels)} channel(s) configured.\n")
 
