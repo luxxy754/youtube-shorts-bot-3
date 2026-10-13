@@ -163,7 +163,7 @@ jobs:
         STICKER_MAX: '7'       # max stickers per video
       run: python main.py
 
-    - name: Commit used_topics.json + post_state.json back to repo
+    - name: Commit used_topics.json + post_state.json + BGM pool back to repo
       if: always()
       run: |
         git config user.name "github-actions[bot]"
@@ -171,7 +171,10 @@ jobs:
         for f in used_topics.json post_state.json; do
           [ -f "$f" ] && git add "$f"
         done
-        git diff --staged --quiet || git commit -m "chore: update used_topics/post_state [skip ci]"
+        # BGM pool bhi commit karo taake next run mein files available hon
+        [ -d "assets/bgm" ] && git add -f assets/bgm/ || true
+        [ -f "assets/bgm_state.json" ] && git add assets/bgm_state.json || true
+        git diff --staged --quiet || git commit -m "chore: update used_topics/post_state/bgm [skip ci]"
         git pull --rebase || true
         git push || echo "Push failed, skipping"
 
