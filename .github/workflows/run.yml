@@ -87,6 +87,7 @@ jobs:
 
         sudo apt-get $APT_OPTS install -y --no-install-recommends \
           ffmpeg \
+          espeak-ng \
           imagemagick \
           libjpeg-dev \
           zlib1g-dev \
