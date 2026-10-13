@@ -11,7 +11,7 @@ import re
 import random
 import shutil
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from google import genai
 
 from modules.composer import ShortsComposer
@@ -58,6 +58,11 @@ MIN_SHOT_LEN = 1.4
 
 # channel_index -> YouTube video ids uploaded in this run
 UPLOADED_IDS = []
+
+# Manual (workflow_dispatch) runs = instant public test post, they never use up the daily slot.
+MANUAL = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
+# If the random target time is less than this many minutes away at upload time, post right now.
+MIN_SCHEDULE_BUFFER_MIN = 4
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -372,7 +377,20 @@ def generate_thumbnail(video_path: str, output_path: str, title_text: str):
     return None
 
 
-def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
+def resolve_publish_at(target_iso):
+    """target_iso = random UTC target time (from the gate). Returns publishAt string or None (= public now)."""
+    if not target_iso:
+        return None
+    try:
+        target = datetime.strptime(target_iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    if target - datetime.now(timezone.utc) < timedelta(minutes=MIN_SCHEDULE_BUFFER_MIN):
+        return None  # target already passed / too close -> publish immediately
+    return target_iso
+
+
+def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> bool:
     name = channel["name"]
     print(f"\n{'='*60}")
     print(f"  Starting pipeline for {name}")
@@ -504,6 +522,7 @@ def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
     print(f"[{name}] Title: {title}")
 
     try:
+        publish_at = None if MANUAL else resolve_publish_at(target_iso)
         video_id = upload_video(
             video_path=final_video_path,
             title=title,
@@ -513,11 +532,22 @@ def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
             client_id=channel["client_id"],
             client_secret=channel["client_secret"],
             refresh_token=channel["refresh_token"],
+            publish_at=publish_at,
         )
-        print(f"[{name}] Video uploaded! ID: {video_id}")
+        print(f"[{name}] Video uploaded! ID: {video_id}"
+              + (f" (goes public at {publish_at} UTC)" if publish_at else " (public now)"))
         print(f"https://youtube.com/shorts/{video_id}")
         attach_video_id(USED_TOPICS_FILE, video_id, name)
         UPLOADED_IDS.append(video_id)
+
+        # Mark this channel as done for today RIGHT AFTER the upload, so a later failure
+        # (thumbnail, TikTok, another channel) can never cause a duplicate post.
+        if not MANUAL:
+            try:
+                mark_posted(channel_index, video_id)
+                print(f"[{name}] Daily slot marked in post_state.json")
+            except Exception as e:
+                print(f"[{name}] mark_posted failed (ignored): {e}")
 
         if os.path.exists(thumb_path):
             print(f"[{name}] Setting thumbnail...")
@@ -534,9 +564,10 @@ def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
             )
 
         elapsed = time.time() - start_time
+        when = f"Public at {publish_at} UTC" if publish_at else "Public now"
         notify_telegram(
             f"[{name}] Video uploaded!\n{title}\n"
-            f"https://youtube.com/shorts/{video_id}\n{elapsed:.0f}s"
+            f"https://youtube.com/shorts/{video_id}\n{when} | {elapsed:.0f}s"
         )
 
     except Exception as e:
@@ -573,19 +604,48 @@ def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
     return True
 
 
+def load_plan(channels):
+    """
+    Which channels to run now -> {channel_index: target_iso or None}.
+      * scheduled run : PLAN_JSON from the gate job, e.g. {"1": "2026-10-13T16:04:00Z"}
+      * manual run    : every channel (or only ONLY_CHANNEL, 1-based) immediately
+    """
+    if MANUAL:
+        only = (os.getenv("ONLY_CHANNEL") or "").strip()
+        if only.isdigit() and 1 <= int(only) <= len(channels):
+            return {int(only) - 1: None}
+        return {i: None for i in range(len(channels))}
+    try:
+        raw = json.loads(os.getenv("PLAN_JSON") or "{}")
+    except ValueError:
+        raw = {}
+    plan = {}
+    for k, v in raw.items():
+        if str(k).isdigit() and int(k) < len(channels):
+            plan[int(k)] = v or None
+    return plan
+
+
 def main():
     print("Starting Automated Short Pipeline...")
     channels = get_youtube_channels()
-    print(f"Found {len(channels)} channel(s) to process.\n")
+    print(f"Found {len(channels)} channel(s) configured.\n")
 
-    manual = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
-    print("Manual run: test post (does not use up today's daily slot)." if manual
-          else "Scheduled run: posting now (random daily slot picked by the gate).")
+    plan = load_plan(channels)
+    if MANUAL:
+        print("Manual run: test post(s) public NOW (does not use up today's daily slot).")
+    else:
+        print("Scheduled run: channels due now -> "
+              + (", ".join(f"{channels[i]['name']} @ {t or 'now'}" for i, t in plan.items()) or "none"))
+    if not plan:
+        print("Nothing due - exiting.")
+        return
 
     results = []
-    for idx, channel in enumerate(channels):
+    for idx in sorted(plan):
+        channel = channels[idx]
         try:
-            ok = run_channel_pipeline(channel, idx)
+            ok = run_channel_pipeline(channel, idx, plan[idx])
             results.append((channel["name"], ok))
         except Exception as e:
             print(f"[{channel['name']}] Pipeline crashed: {e}")
@@ -598,13 +658,6 @@ def main():
     for name, ok in results:
         status = "✅ SUCCESS" if ok else "❌ FAILED"
         print(f"  {name}: {status}")
-
-    if UPLOADED_IDS and not manual:
-        try:
-            mark_posted(",".join(UPLOADED_IDS))
-            print("Daily post marked in post_state.json")
-        except Exception as e:
-            print(f"mark_posted failed (ignored): {e}")
 
     if not all(ok for _, ok in results):
         raise SystemExit(1)
