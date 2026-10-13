@@ -158,6 +158,8 @@ jobs:
         TTS_RATE: '+8%'
         # SHOT_SECONDS no longer fixed here: modules/style_variation.py picks it per video
         PRO_FX: '1'
+        STICKERS: '1'          # word-matched 3D stickers on captions (0 = off)
+        STICKER_MAX: '7'       # max stickers per video
       run: python main.py
 
     - name: Commit used_topics.json + post_state.json back to repo
