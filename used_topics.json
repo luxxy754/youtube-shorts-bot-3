@@ -101,27 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-09-30T13:58:00",
-      "category": "technology, robots, computers and smartphones",
-      "format": "myth_vs_truth",
-      "title": "Apps close karne se battery bachti hai? 🔋",
-      "fact": "Closing background apps on smartphones actually consumes more battery because reloading them from scratch requires more CPU cycles than resuming them from RAM."
-    },
-    {
-      "date": "2026-09-30T19:36:10",
-      "category": "dreams and sleep",
-      "format": "shocking_fact",
-      "title": "Kya aapka dimaag jagte hue bhi sota hai? 🧠",
-      "fact": "The brain experiences a state of local sleep where individual neurons can temporarily go offline while the person remains awake."
-    },
-    {
-      "date": "2026-10-01T07:28:55",
-      "category": "volcanoes, earthquakes and how the Earth works",
-      "format": "top3",
-      "title": "Dharti Ke Teen Hairan Karne Wale Sach 🌋",
-      "fact": "Earthquakes instantly deposit gold in fault zones, volcanic clouds generate their own lightning storms, and massive earthquakes speed up Earth's rotation to shorten the day."
-    },
-    {
       "date": "2026-10-01T08:27:24",
       "category": "sports and the limits of the human body",
       "format": "myth_vs_truth",
@@ -796,6 +775,33 @@
       "title": "Why you love your worst creations 🪑",
       "fact": "The IKEA effect causes people to place a disproportionately high value on items they helped create or assemble, because personal labor triggers an emotional attachment and enhances perceived value.",
       "video_id": "rgtBOmekaJo",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-13T12:34:02",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "myth_vs_truth",
+      "title": "Why They Never Feel Guilty #shorts #mindset",
+      "fact": "Roy Baumeister's research on the magnitude gap shows perpetrators of interpersonal hurt view their behavior as minor, harmless, and quickly forgotten, while victims view the same act as severe, malicious, and enduring.",
+      "video_id": "Ugp1mrl5N4k",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-13T12:39:35",
+      "category": "shopping, money and attention psychology: why we buy, scroll and get hooked",
+      "format": "top3",
+      "title": "Why you never switch brands #money",
+      "fact": "Familiarity breeds preference through the mere exposure effect, which companies exploit to make us buy trusted brands.",
+      "video_id": "t8uqiEikPe4",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-13T12:44:01",
+      "category": "psychology of habits, procrastination and willpower",
+      "format": "question_first",
+      "title": "Why do you always procrastinate? #shorts #psychology",
+      "fact": "Implementation intentions, or specific if-then plans, reduce procrastination by outsourcing decision-making to environmental cues rather than relying on willpower.",
+      "video_id": "O9gPK4MZhC4",
       "channel": "Channel 3"
     }
   ]
