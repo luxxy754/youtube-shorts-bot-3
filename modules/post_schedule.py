@@ -1,24 +1,34 @@
 """
-Daily posting scheduler: ONE Short per day at a random time inside US waking hours.
+Per-channel random daily scheduler: every channel posts ONE Short per day,
+each at its OWN random time (random hour AND random minute) inside US waking hours.
 
-How it works (GitHub Actions cron is only a "wake-up" every hour):
-  * Each day (US Eastern date) gets its own pseudo-random target hour inside the
-    window [WINDOW_START_HOUR, WINDOW_END_HOUR) ET  (default 10:00-22:00 ET =
-    7 AM-7 PM Pacific, i.e. nobody-is-asleep time for the whole US).
-  * The hourly wake-up runs `gate`:
-        - already posted today?                 -> go=false
-        - current ET hour == target hour        -> go=true
-        - target hour already passed, not posted yet (missed/failed run)
-          and still inside the window            -> go=true  (catch-up / retry)
-        - otherwise                              -> go=false
-  * When go=true the workflow also sleeps a random 0-45 min first, so the upload
-    minute is random too (never ":00" / never the same minute two days in a row).
-  * After a successful upload main.py calls mark_posted() -> post_state.json
-    (committed back to the repo by the workflow).
+How it works
+------------
+GitHub Actions cron only "wakes up" once an hour (the `gate` step below). Nothing is
+stored in advance: today's schedule is derived from a hash of (SALT + US-Eastern date),
+so every wake-up computes the SAME plan for that day, and it changes every day.
+
+  * The posting window (default 10:00-22:00 ET = 7 AM-7 PM Pacific, i.e. everybody in the
+    US is awake) is cut into N equal slices, one per channel.
+  * Each slice gets one random minute (kept POST_EDGE_MIN away from the slice edges,
+    so two channels are never closer than ~2*POST_EDGE_MIN minutes).
+  * Which channel gets which slice is shuffled every day, so channel 1 is not always
+    "the morning channel".
+
+Each hourly wake-up asks: "which channels are due?"
+  * a channel is due when its target time is at most POST_LEAD_MIN (default 90) minutes
+    away, or already passed, and it has not posted today yet;
+  * main.py then builds the video (takes ~10-25 min) and uploads it with YouTube's
+    `publishAt`, so it goes public at the EXACT random minute, even if GitHub's cron was
+    late. If the target already passed, it is published immediately (catch-up/retry).
+  * after each successful upload main.py calls mark_posted() -> post_state.json
+    (committed back to the repo by the workflow), so nothing is ever posted twice a day.
 
 Pure standard library. Env overrides:
-  POST_WINDOW_START (default 10), POST_WINDOW_END (default 22), POST_TZ (America/New_York),
-  POST_MAX_DELAY_MIN (default 45), SCHEDULE_SALT (any text, makes the daily pattern private).
+  CHANNEL_COUNT (default 3), POST_TZ (America/New_York),
+  POST_WINDOW_START (default 10), POST_WINDOW_END (default 22, exclusive),
+  POST_EDGE_MIN (default 30), POST_LEAD_MIN (default 90), POST_CATCHUP_MIN (default 60),
+  SCHEDULE_SALT (any text, makes the daily pattern private).
 """
 
 import hashlib
@@ -26,14 +36,17 @@ import json
 import os
 import random
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 STATE_FILE = os.getenv("POST_STATE_FILE", "post_state.json")
 TZ = ZoneInfo(os.getenv("POST_TZ", "America/New_York"))
+CHANNEL_COUNT = int(os.getenv("CHANNEL_COUNT", "3"))
 WINDOW_START = int(os.getenv("POST_WINDOW_START", "10"))
 WINDOW_END = int(os.getenv("POST_WINDOW_END", "22"))        # exclusive
-MAX_DELAY_MIN = int(os.getenv("POST_MAX_DELAY_MIN", "45"))
+EDGE_MIN = int(os.getenv("POST_EDGE_MIN", "30"))
+LEAD_MIN = int(os.getenv("POST_LEAD_MIN", "90"))
+CATCHUP_MIN = int(os.getenv("POST_CATCHUP_MIN", "60"))      # retry allowed this long after window end
 SALT = os.getenv("SCHEDULE_SALT") or os.getenv("GITHUB_REPOSITORY") or "shorts"
 
 
@@ -45,10 +58,27 @@ def _today(now=None):
     return _now(now).strftime("%Y-%m-%d")
 
 
-def target_hour(date_str):
-    """Deterministic-but-unpredictable hour for that ET date (same answer all day)."""
+def _at(date_str, minute_of_day):
+    """Aware ET datetime for `minute_of_day` on `date_str`."""
+    base = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=TZ)
+    return base + timedelta(minutes=minute_of_day)
+
+
+def day_schedule(date_str, n=None):
+    """{channel_index: minute_of_day} - deterministic for that ET date, random across days."""
+    n = n or CHANNEL_COUNT
     seed = int(hashlib.sha256(f"{SALT}:{date_str}".encode()).hexdigest(), 16)
-    return random.Random(seed).choice(range(WINDOW_START, WINDOW_END))
+    rng = random.Random(seed)
+    start, end = WINDOW_START * 60, WINDOW_END * 60
+    span = (end - start) / n
+    slots = []
+    for i in range(n):
+        lo = int(start + i * span + EDGE_MIN)
+        hi = int(start + (i + 1) * span - EDGE_MIN)
+        slots.append(rng.randint(lo, max(lo, hi)))
+    order = list(range(n))
+    rng.shuffle(order)
+    return {order[i]: slots[i] for i in range(n)}
 
 
 def _load_state(path=None):
@@ -59,50 +89,74 @@ def _load_state(path=None):
         return {}
 
 
-def posted_today(now=None, path=None):
-    return _load_state(path).get("last_post_date_et") == _today(now)
+def posted_channels(now=None, path=None):
+    state = _load_state(path)
+    if state.get("date") != _today(now):
+        return {}
+    return state.get("posted", {})
 
 
-def should_post_now(now=None, path=None):
+def due_channels(now=None, n=None, path=None):
+    """Returns ({channel_index: target_datetime_ET}, reasons[])."""
+    n = n or CHANNEL_COUNT
+    nw = _now(now)
+    date = _today(nw)
+    done = posted_channels(nw, path)
+    sched = day_schedule(date, n)
+    cutoff = _at(date, WINDOW_END * 60 + CATCHUP_MIN)
+    due, reasons = {}, []
+    for ch in range(n):
+        target = _at(date, sched[ch])
+        tag = f"ch{ch + 1} target {target.strftime('%H:%M')} ET"
+        if str(ch) in done:
+            reasons.append(f"{tag}: already posted today")
+        elif nw > cutoff:
+            reasons.append(f"{tag}: day is over, skipped")
+        elif nw + timedelta(minutes=LEAD_MIN) >= target:
+            due[ch] = target
+            reasons.append(f"{tag}: DUE" + (" (late, catching up)" if nw >= target else ""))
+        else:
+            reasons.append(f"{tag}: waiting")
+    return due, reasons
+
+
+def mark_posted(channel_index, video_id="", now=None, path=None):
     n = _now(now)
-    if posted_today(n, path):
-        return False, "already posted today"
-    th = target_hour(_today(n))
-    if not (WINDOW_START <= n.hour < WINDOW_END):
-        return False, f"outside window (ET hour {n.hour}, target {th})"
-    if n.hour == th:
-        return True, f"target hour {th} ET reached"
-    if n.hour > th:
-        return True, f"target hour {th} ET already passed and nothing posted - catching up"
-    return False, f"waiting for target hour {th} ET (now {n.hour})"
-
-
-def mark_posted(video_id="", now=None, path=None):
-    n = _now(now)
-    data = {"last_post_date_et": _today(n), "last_post_time_et": n.strftime("%H:%M"),
-            "video_id": video_id}
+    date = _today(n)
+    state = _load_state(path)
+    if state.get("date") != date:
+        state = {"date": date, "posted": {}}
+    state.setdefault("posted", {})[str(channel_index)] = {
+        "time_et": n.strftime("%H:%M"), "video_id": video_id,
+    }
     with open(path or STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+        json.dump(state, f, indent=2)
+
+
+def to_utc_iso(dt):
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _gate_cli():
-    manual = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
-    if manual:
-        go, why, delay = True, "manual run", 0
-    else:
-        go, why = should_post_now()
-        delay = random.randint(0, MAX_DELAY_MIN * 60) if go else 0
-    print(f"[gate] go={go} delay={delay}s :: {why}")
+    due, reasons = due_channels()
+    for r in reasons:
+        print(f"[gate] {r}")
+    plan = {str(ch): to_utc_iso(t) for ch, t in due.items()}
+    print(f"[gate] go={bool(plan)} plan={plan}")
     out = os.getenv("GITHUB_OUTPUT")
     if out:
         with open(out, "a") as f:
-            f.write(f"go={'true' if go else 'false'}\ndelay={delay}\n")
+            f.write(f"go={'true' if plan else 'false'}\n")
+            f.write(f"plan={json.dumps(plan)}\n")
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "gate":
         _gate_cli()
     else:
+        # preview: python -m modules.post_schedule
         n = _now()
-        print("ET now:", n.strftime("%Y-%m-%d %H:%M"), "| today's target hour:", target_hour(_today(n)))
-        print(should_post_now())
+        print("ET now:", n.strftime("%Y-%m-%d %H:%M"))
+        for ch, m in sorted(day_schedule(_today(n)).items()):
+            print(f"  channel {ch + 1}: {_at(_today(n), m).strftime('%H:%M')} ET")
+        print(due_channels()[1])
