@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-01T08:50:23",
-      "category": "psychology and everyday human habits",
-      "format": "mystery_explained",
-      "title": "Kya Aapki Yaadash Poori Tarah Jhoothi Hai? 🧠",
-      "fact": "Human memory reconstructs details upon retrieval rather than playing back a static recording, making memories prone to distortion over time."
-    },
-    {
       "date": "2026-10-01T10:22:57",
       "category": "food and cooking science",
       "format": "personal_what_if",
@@ -805,6 +798,15 @@
       "fact": "The zero-price effect causes the human brain to overvalue free items, turning zero cost into an emotional trigger that bypasses rational cost-benefit analysis.",
       "video_id": "PXAdztwYsP0",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-13T21:50:56",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "psychology_effect",
+      "title": "Why you secretly copy people who ignore you #shorts #mindset",
+      "fact": "The Ostracism Detection Norm causes people to reflexively mimic group members the moment they suspect social exclusion, using unconscious behavioral matching to regain acceptance.",
+      "video_id": "fZlDkYUjDz4",
+      "channel": "Channel 1"
     }
   ]
 }
