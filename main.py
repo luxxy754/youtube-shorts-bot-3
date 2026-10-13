@@ -424,6 +424,10 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
     # ---------- 2. Voiceover ----------
     print(f"\n[{name}] Generating voiceovers...")
     try:
+        audio_mod.pick_video_voice(channel_index)
+    except Exception as e:
+        print(f"[{name}] voice pick skipped: {e}")
+    try:
         voice_paths = build_scene_voiceovers(scenes, ch_audio_dir)
     except Exception as e:
         msg = f"[{name}] Voiceover failed: {e}"
