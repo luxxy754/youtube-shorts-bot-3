@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-09-30T09:41:55",
-      "category": "science labs, experiments and discoveries",
-      "format": "top3",
-      "title": "क्या आपका शरीर खाली है? ये 3 चीज़ें जानें! 🤯",
-      "fact": "Three fundamental aspects of reality (space, atoms, and even our bodies) are far emptier and more permeable than commonly perceived, exemplified by the constant passage of neutrinos through us."
-    },
-    {
-      "date": "2026-09-30T13:33:54",
-      "category": "ancient civilizations, temples and ruins",
-      "format": "personal_what_if",
-      "title": "Pyramid ka raaz: Ek pathar ka wazan! 🤯",
-      "fact": "The immense weight of individual stone blocks used in ancient structures like the Great Pyramid of Giza, some weighing up to fifty thousand kilograms."
-    },
-    {
       "date": "2026-09-30T13:58:00",
       "category": "technology, robots, computers and smartphones",
       "format": "myth_vs_truth",
@@ -783,6 +769,33 @@
       "title": "Why strangers judge your shoes first 👟",
       "fact": "People judge social status and competence within milliseconds from clothing brand cues, a status signaling bias.",
       "video_id": "d9q-JFpmBoE",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-13T09:15:25",
+      "category": "emotions, mood, stress and how people react to them",
+      "format": "psychology_effect",
+      "title": "Why Dread Feels Worse Than Reality 🧠",
+      "fact": "Anticipating negative events often causes more physiological and emotional distress than the actual events themselves.",
+      "video_id": "9hiDQLEaQRo",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-13T09:20:10",
+      "category": "memory: why we forget, false memories, why we remember some things forever",
+      "format": "top3",
+      "title": "Your brain invents memories you never lived 🧠",
+      "fact": "Human memory is reconstructive, meaning every time an event is recalled, the brain alters details and can fabricate entire false memories.",
+      "video_id": "S96Jfy7w6bU",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-13T09:27:04",
+      "category": "decision making, cognitive biases and why smart people make silly choices",
+      "format": "psychology_fact",
+      "title": "Why you love your worst creations 🪑",
+      "fact": "The IKEA effect causes people to place a disproportionately high value on items they helped create or assemble, because personal labor triggers an emotional attachment and enhances perceived value.",
+      "video_id": "rgtBOmekaJo",
       "channel": "Channel 3"
     }
   ]
