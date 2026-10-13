@@ -427,6 +427,14 @@ def build_word_caption_clips(scenes, scene_timings, total_duration,
 
     print(str(len(clips)) + " word-caption frames built "
           + ("(real word timings)" if word_timings and any(word_timings) else "(estimated timings)"))
+
+    # Word-matched stickers (brain -> 3D brain, money -> 3D money bag ...). Never breaks captions.
+    try:
+        from modules.stickers import build_sticker_clips
+        clips.extend(build_sticker_clips(
+            chunks, total_duration, caption_center_y=TARGET_H * y_ratio, seed=seed))
+    except Exception as e:
+        print("Stickers skipped: " + str(e))
     return clips
 
 
