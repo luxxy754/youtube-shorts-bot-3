@@ -2,17 +2,20 @@ name: Auto Generate and Post YouTube Shorts
 
 on:
   schedule:
-    # US trending hours (PKT = UTC+5):
-    #   Run A: 11:00 UTC = 16:00 PKT = 6:00 AM ET  (US morning trending)
-    #   Run B: 23:00 UTC = 04:00 PKT = 6:00 PM ET  (US evening prime time)
-    - cron: '0 11 * * *'
-    - cron: '0 23 * * *'
+    # Hourly "wake-up" only (minute :07 avoids the busy :00 queue).
+    # modules/post_schedule.py (the gate job) decides which channel is due:
+    # every channel gets ONE post per day at its own random US-waking-hours time.
+    - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
       publish_now:
         description: 'Manual test: schedule ke bajaye foran public upload'
         type: boolean
         default: true
+      only_channel:
+        description: 'Sirf is channel ka test (1, 2 ya 3). Khali = sab channels'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -22,7 +25,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.gate.outputs.go }}
+      plan: ${{ steps.gate.outputs.plan }}
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Which channels are due?
+      id: gate
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        CHANNEL_COUNT: '3'            # number of YouTube channels (1..3)
+        POST_TZ: 'America/New_York'
+        POST_WINDOW_START: '10'       # 10:00 ET = 7 AM Pacific
+        POST_WINDOW_END: '22'         # 22:00 ET = 7 PM Pacific
+        # SCHEDULE_SALT: any secret text (optional, makes the daily pattern private)
+      run: |
+        if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+          echo "go=true" >> "$GITHUB_OUTPUT"
+          echo "plan={}" >> "$GITHUB_OUTPUT"
+          echo "[gate] manual run -> go"
+        else
+          python3 modules/post_schedule.py gate
+        fi
+
   build-and-run:
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
 
@@ -117,8 +150,9 @@ jobs:
         CAPTION_WORDS: '2'
         LOOP_VIDEO: '1'
         HOOK_TEXT: '1'
-        SCHEDULE_CRON: ${{ github.event.schedule }}
-        PUBLISH_NOW: ${{ github.event.inputs.publish_now }}
+        EVENT_NAME: ${{ github.event_name }}
+        PLAN_JSON: ${{ needs.gate.outputs.plan }}
+        ONLY_CHANNEL: ${{ github.event.inputs.only_channel }}
         HOOK_CAPTION: '1'
         TTS_VOICE: 'en-US-AndrewNeural'
         TTS_RATE: '+8%'
@@ -126,17 +160,17 @@ jobs:
         PRO_FX: '1'
       run: python main.py
 
-    - name: Commit used_topics.json back to repo
+    - name: Commit used_topics.json + post_state.json back to repo
       if: always()
       run: |
-        if [ -f used_topics.json ]; then
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add used_topics.json
-          git diff --staged --quiet || git commit -m "chore: update used_topics [skip ci]"
-          git pull --rebase || true
-          git push || echo "Push failed, skipping"
-        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        for f in used_topics.json post_state.json; do
+          [ -f "$f" ] && git add "$f"
+        done
+        git diff --staged --quiet || git commit -m "chore: update used_topics/post_state [skip ci]"
+        git pull --rebase || true
+        git push || echo "Push failed, skipping"
 
     - name: Notify failure on Telegram
       if: failure()
