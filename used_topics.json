@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-01T08:27:24",
-      "category": "sports and the limits of the human body",
-      "format": "myth_vs_truth",
-      "title": "Pahad Par Achanak Blindness Kyun Hoti Hai? 🏔️",
-      "fact": "High-altitude hypoxia deprives the retina and visual cortex of sufficient oxygen, causing temporary vision loss or high-altitude retinal hemorrhage in mountaineers, which usually resolves upon descent."
-    },
-    {
       "date": "2026-10-01T08:50:23",
       "category": "psychology and everyday human habits",
       "format": "mystery_explained",
@@ -803,6 +796,15 @@
       "fact": "Implementation intentions, or specific if-then plans, reduce procrastination by outsourcing decision-making to environmental cues rather than relying on willpower.",
       "video_id": "O9gPK4MZhC4",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-13T16:58:10",
+      "category": "why free trials, discounts and 'limited time' actually work on the brain",
+      "format": "psychology_fact",
+      "title": "Why Free Trials Break Your Brain",
+      "fact": "The zero-price effect causes the human brain to overvalue free items, turning zero cost into an emotional trigger that bypasses rational cost-benefit analysis.",
+      "video_id": "PXAdztwYsP0",
+      "channel": "Channel 2"
     }
   ]
 }
