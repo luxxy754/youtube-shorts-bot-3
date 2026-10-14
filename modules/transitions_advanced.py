@@ -50,13 +50,15 @@ STYLE_MODES = ["papershuffle", "inkdrip", "spin", "shake", "zoomblur"]
 ALL_MODES = XFADE_MODES + ZOOM_MODES + GLITCH_MODES + LIGHT_MODES + STYLE_MODES
 CUSTOM_MODES = set(ZOOM_MODES + GLITCH_MODES + LIGHT_MODES + STYLE_MODES)
 
-# Modes that MUST appear in every palette (the "hero" effects)
+# Modes that MUST appear in every palette (the "hero" effects).
+# papershuffle is guaranteed whenever there are enough joins.
 MUST_HAVE_MODES = ["papershuffle"]
 
 PALETTE_SIZES = [5, 6, 7, 8]
 TRANSITION_DURATIONS = [0.20, 0.24, 0.28, 0.32, 0.36, 0.42]
 
-# Per-channel bias: Channel 1 fast, Channel 2 cinematic, Channel 3 vintage.
+# Per-channel bias: Channel 1 (idx 0) fast, Channel 2 (idx 1) slow,
+# Channel 3 (idx 2) medium. Keeps channels visually distinct.
 CHANNEL_BIAS = {
     0: "fast",
     1: "slow",
@@ -105,6 +107,14 @@ def _category_modes(cat):
 
 
 def pick_palette(style, seed=None):
+    """
+    Build a per-video transition palette.
+
+    Guarantees:
+      * Every MUST_HAVE_MODES entry (papershuffle) is included.
+      * At least 2 custom effects and at least 1 native xfade are included.
+      * Palette size is 5-8 modes, shuffled so order is never fixed.
+    """
     if seed is None:
         seed = random.SystemRandom().randrange(0, 2**32)
     rnd = random.Random(seed)
@@ -116,7 +126,7 @@ def pick_palette(style, seed=None):
     size = rnd.choice(PALETTE_SIZES)
     cats = CATEGORY_POOL.get(bias, CATEGORY_POOL["medium"])
 
-    # Build separate pools for native vs custom modes
+    # Split the pool into native vs custom candidates.
     native_pool = []
     custom_pool = []
     for c in cats:
@@ -125,8 +135,8 @@ def pick_palette(style, seed=None):
         else:
             custom_pool += _category_modes(c)
 
-    # ALWAYS add every style/glitch/light/zoom mode to the custom pool so
-    # papershuffle and friends can never be excluded by category bias.
+    # Always append every custom effect so style modes (papershuffle etc.)
+    # can never be excluded by category bias.
     for m in ZOOM_MODES + GLITCH_MODES + LIGHT_MODES + STYLE_MODES:
         if m not in custom_pool:
             custom_pool.append(m)
@@ -134,20 +144,16 @@ def pick_palette(style, seed=None):
     rnd.shuffle(native_pool)
     rnd.shuffle(custom_pool)
 
-    # Reserve slots: at least 2 custom, at least 1 native, plus must-have modes
-    n_custom = max(2, size - 3)
-    n_native = max(1, size - n_custom)
-
     palette = []
     seen = set()
 
-    # 1) Must-have modes first (papershuffle etc.)
+    # 1) Must-have modes go in first.
     for m in MUST_HAVE_MODES:
         if m not in seen:
             palette.append(m)
             seen.add(m)
 
-    # 2) Fill custom slots
+    # 2) Fill from custom pool (ensure at least 2 custom modes).
     for m in custom_pool:
         if len(palette) >= size:
             break
@@ -155,7 +161,7 @@ def pick_palette(style, seed=None):
             palette.append(m)
             seen.add(m)
 
-    # 3) Fill native slots
+    # 3) Fill from native pool (ensure at least 1 native xfade).
     for m in native_pool:
         if len(palette) >= size:
             break
@@ -163,7 +169,7 @@ def pick_palette(style, seed=None):
             palette.append(m)
             seen.add(m)
 
-    # 4) If still short, pull from ALL_MODES
+    # 4) If still short, top up from ALL_MODES.
     if len(palette) < size:
         leftovers = [m for m in ALL_MODES if m not in seen]
         rnd.shuffle(leftovers)
@@ -182,15 +188,17 @@ def pick_palette(style, seed=None):
 
 def pick_transitions(n_joins, style, seed=None):
     """
-    Returns list of length n_joins. Each item is a mode name OR None (hard cut).
-    Same mode appears at most once per video for max variety.
-    Papershuffle is guaranteed to be used at least once if n_joins >= 3.
+    Returns list of length n_joins.
+
+    Each item is either a mode name (from the palette) or None (= hard cut).
+    The same mode appears at most once per video for maximum variety.
+    MUST_HAVE_MODES are forced into the first half of the video.
     """
     if n_joins <= 0:
         return []
 
     density = float(style.get("transition_density", 0.80))
-    # Clamp: at least 82% xfade, at most 100%
+    # Clamp: at least 82% xfade so we never silently turn most joins into cuts.
     density = max(0.82, min(1.0, density))
     hard_weight = 1.0 - density
 
@@ -206,16 +214,17 @@ def pick_transitions(n_joins, style, seed=None):
     out = []
     last = None
 
-    # Force must-have modes into the output if there are enough joins
+    # Force must-have modes into the first part of the video.
     forced = []
     if n_joins >= 3:
         for m in MUST_HAVE_MODES:
             if m in palette:
                 forced.append(m)
 
+    forced_until = max(1, n_joins // 2)
+
     for i in range(n_joins):
-        # Place forced modes in the first half of the video
-        if forced and i < max(1, n_joins // 2):
+        if forced and i < forced_until:
             pick = forced.pop(0)
             if pick != last:
                 out.append(pick)
@@ -258,7 +267,14 @@ def _native_filter(mode, t):
 
 
 def _join_filters(mode, t_len):
-    """Return (pre_a, pre_b, xfade_filter_with_%OFFSET%)."""
+    """
+    Return (pre_a_filter, pre_b_filter, xfade_filter_with_%OFFSET%).
+
+    pre_a: filter chain applied to the OUTGOING scene before xfade.
+    pre_b: filter chain applied to the INCOMING scene before xfade.
+    The xfade string contains %OFFSET% which the caller replaces with the
+    real offset value.
+    """
     if mode is None:
         return "", "", "xfade=transition=fade:duration=0.04:offset=%OFFSET%"
 
@@ -339,9 +355,9 @@ def _join_filters(mode, t_len):
 
     # ---- STYLE ----
     if mode == "papershuffle":
-        # Paper shuffle gets its own visual: a horizontal slice wipe
-        # combined with a slight brightness shift, so it does NOT look
-        # like a generic native xfade. SFX = paper rustle (in transition_sfx.py).
+        # A slice wipe with a slight brightness shift so it does NOT look
+        # like a generic native xfade. Its SFX stays "paper" (rustle) via
+        # _mode_kind("papershuffle") -> "paper" in transition_sfx.py.
         pre_a = "eq=brightness=0.04"
         pre_b = "eq=brightness=-0.02"
         return pre_a, pre_b, _native_filter("hlslice", t_len * 1.1)
@@ -376,7 +392,10 @@ def _join_filters(mode, t_len):
 # MAIN APPLY
 # ============================================================
 def _safe_mode(mode):
-    """Map any custom transition to a native xfade that FFmpeg definitely supports."""
+    """
+    Map any custom transition to a native xfade that FFmpeg definitely supports.
+    Used only as a fallback when the full custom graph fails to render.
+    """
     if mode in XFADE_MODES:
         return mode
     mapping = {
@@ -415,11 +434,11 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
     """
     Join scenes with randomized transitions, matching SFX, and safe retry.
 
-    Strategy:
-      1) Try the full custom filter graph.
-      2) If it fails, find the individual joins that fail and replace ONLY those
-         with native equivalents. All other joins keep their custom effect.
-      3) As a last resort, fall back to all-native.
+    Strategy (3-tier fallback):
+      1) "full"        - try the full custom filter graph.
+      2) "downgraded"  - replace only the custom modes with native equivalents
+                         (keeps whichever custom filters do work).
+      3) "all_safe"    - replace every mode with a native equivalent.
 
     Returns dict: {ok, cuts, transition_sfx}
     """
@@ -436,17 +455,18 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
     rng = np.random.default_rng()
     sfx_master_gain = float(style.get("sfx_transition_gain", 0.62))
 
-    # ---------- attempt list: full -> per-join downgrade -> all safe ----------
-    attempts = []
-    attempts.append(("full", list(transitions)))
+    # ---------- build attempt list ----------
+    attempts = [("full", list(transitions))]
 
-    # Per-join downgrade: replace each custom mode one at a time
-    if any(m in CUSTOM_MODES for m in transitions if m is not None):
-        downgraded = [_safe_mode(m) if (m is not None and m in CUSTOM_MODES) else m
-                      for m in transitions]
-        attempts.append(("downgraded", downgraded))
+    has_custom = any(m in CUSTOM_MODES for m in transitions if m is not None)
+    if has_custom:
+        downgraded = [
+            (_safe_mode(m) if (m is not None and m in CUSTOM_MODES) else m)
+            for m in transitions
+        ]
+        if downgraded != list(transitions):
+            attempts.append(("downgraded", downgraded))
 
-    # All-safe fallback
     all_safe = [_safe_mode(m) if m is not None else None for m in transitions]
     if all_safe != list(transitions):
         attempts.append(("all_safe", all_safe))
@@ -454,6 +474,10 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
     # ---------- run attempts ----------
     final_attempt = None
     final_modes = None
+    join_times = []
+    join_modes = []
+    join_kinds = []
+
     for label, modes in attempts:
         inputs = []
         for path in scene_paths:
@@ -465,12 +489,14 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
 
         cur_v, cur_a = "v_in0", "0:a"
         total_offset = float(durations[0])
-        join_times, join_modes, join_kinds = [], [], []
-        ok_so_far = True
+
+        this_join_times, this_join_modes, this_join_kinds = [], [], []
 
         for i, mode in enumerate(modes):
             next_v, next_a = f"v_in{i+1}", f"{i+1}:a"
 
+            # Pick the per-join transition duration.
+            # None (hard cut) uses a tiny 0.04s crossfade so audio stays synced.
             real_t = 0.04 if mode is None else max(
                 0.12, min(0.5, t_len_default * rng.uniform(0.9, 1.1)))
 
@@ -486,7 +512,9 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
                 parts.append(f"[{next_v}]{pre_b}[{b_out}]")
                 next_v = b_out
 
-            # FIXED OFFSET MATH: subtract the transition overlap
+            # FIXED OFFSET MATH:
+            # offset = (start of the previous scene in the output timeline)
+            #          - (transition duration) so the overlap begins there.
             offset = max(0.0, total_offset - real_t)
             parts.append(
                 f"[{cur_v}][{next_v}]{xf.replace('%OFFSET%', _fmt(offset))}[xv{i}]"
@@ -496,13 +524,14 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
             )
 
             if mode is not None:
-                join_times.append(offset + real_t * 0.5)
-                join_modes.append(mode)
-                join_kinds.append(_mode_kind(mode))
+                this_join_times.append(offset + real_t * 0.5)
+                this_join_modes.append(mode)
+                this_join_kinds.append(_mode_kind(mode))
 
             cur_v, cur_a = f"xv{i}", f"xa{i}"
-            # FIXED: next scene starts at offset + real_t, so total timeline
-            # advances by (next_scene_len - real_t) after the overlap.
+            # FIXED TIMELINE MATH:
+            # After an xfade of length real_t, the timeline advances by the
+            # next scene's length MINUS the overlap that was already played.
             total_offset = offset + real_t + (float(durations[i + 1]) - real_t)
 
         graph = ";".join(parts)
@@ -515,6 +544,9 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
         if _try_ffmpeg(cmd, out_path, label=label):
             final_attempt = label
             final_modes = modes
+            join_times = this_join_times
+            join_modes = this_join_modes
+            join_kinds = this_join_kinds
             break
         else:
             print(f"[transitions] attempt '{label}' failed, trying next...")
@@ -536,14 +568,20 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
             "spin": 0.65, "shake": 0.80, "zoomblur": 0.65,
             "inkdrip": 0.75, "punch": 0.85,
         }.get(kind, 0.60)
-        sfx_list.append({"t": round(t_join, 3), "mode": mode, "kind": kind,
-                         "audio": audio, "gain": per_kind * sfx_master_gain})
+        sfx_list.append({
+            "t": round(t_join, 3),
+            "mode": mode,
+            "kind": kind,
+            "audio": audio,
+            "gain": per_kind * sfx_master_gain,
+        })
 
     result.update(
         ok=True,
         cuts=[round(t, 3) for t in join_times],
         transition_sfx=sfx_list,
     )
+
     custom_used = sum(1 for m in final_modes if m in CUSTOM_MODES)
     native_used = sum(1 for m in final_modes if m in XFADE_MODES)
     hard_cuts = sum(1 for m in final_modes if m is None)
@@ -553,6 +591,6 @@ def apply_transitions_ffmpeg(scene_paths, durations, transitions,
         f"{len(sfx_list)} matched SFX"
     )
     if final_attempt != "full":
-        print(f"[transitions] NOTE: some custom filters were downgraded to native "
-              f"equivalents by FFmpeg fallback.")
+        print("[transitions] NOTE: some custom filters were downgraded to native "
+              "equivalents by the FFmpeg fallback.")
     return result
