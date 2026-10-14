@@ -101,27 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-01T10:59:43",
-      "category": "history's strangest records and museum objects",
-      "format": "shocking_fact",
-      "title": "Paintings made of real corpses? 🎨",
-      "fact": "Artists used ground-up ancient Egyptian mummies to make a brown paint pigment called 'Mummy Brown' until manufacturing stopped in the twentieth century."
-    },
-    {
-      "date": "2026-10-01T13:28:08",
-      "category": "trees, plants and forests",
-      "format": "mystery_explained",
-      "title": "Trees Secretly Talk Underground 🌳",
-      "fact": "Trees communicate and share resources with each other underground through an extensive network of fungal hyphae known as the mycorrhizal network or wood wide web."
-    },
-    {
-      "date": "2026-10-01T14:43:57",
-      "category": "science labs, experiments and discoveries",
-      "format": "personal_what_if",
-      "title": "Paani Me Light Kaise Qaid Hui? 🤯",
-      "fact": "Laser beams can become trapped inside a stream of water through total internal reflection, acting like a flexible light pipe."
-    },
-    {
       "date": "2026-10-01T19:29:27",
       "category": "extreme weather (lightning, storms, ice, rain)",
       "format": "myth_vs_truth",
@@ -808,6 +787,33 @@
       "title": "Why does a bad night make you furious? #Shorts",
       "fact": "Sleep deprivation increases amygdala reactivity and reduces prefrontal functional connectivity, causing neutral faces to be perceived as threatening.",
       "video_id": "PdFzqEaVnPY",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-14T09:18:27",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "personal_what_if",
+      "title": "Why Your Brain Forces You to Look Away 🧠",
+      "fact": "Gaze aversion occurs because processing visual facial cues shares cognitive resources with verbal working memory, forcing the brain to look away to retrieve words and resolve complex thoughts.",
+      "video_id": "oJeSt5FI4hw",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-14T09:22:38",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "psychology_effect",
+      "title": "Why Gossip Secretly Brands You #shorts #mindset",
+      "fact": "Spontaneous trait transference causes listeners to unconsciously attribute the positive or negative adjectives a speaker uses to describe others onto the speaker themselves.",
+      "video_id": "Bux-Ts-afu8",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-14T09:26:04",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "story",
+      "title": "Why Neutral Texts Feel So Hostile #Shorts",
+      "fact": "Without nonverbal cues, human psychology defaults to a negative interpretation bias, making neutral text messages feel hostile.",
+      "video_id": "0pV2dJbSeYA",
       "channel": "Channel 3"
     }
   ]
