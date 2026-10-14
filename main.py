@@ -25,7 +25,7 @@ from modules.asset_manager import fetch_scene_video, fetch_extra_clips
 from modules import audio as audio_mod
 from modules.audio import generate_voiceover, load_word_timings, get_duration
 from modules.brain import generate_script, record_history, attach_video_id
-from modules.post_schedule import mark_posted
+from modules import post_schedule
 from modules.style_variation import get_style
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -56,7 +56,11 @@ SHOT_SECONDS = float(os.getenv("SHOT_SECONDS", "2.0"))
 MAX_SHOTS_PER_SCENE = 3
 MIN_SHOT_LEN = 1.4
 
+# Skip channel-level gate if set (used for manual test)
+FORCE_ALL_CHANNELS = os.getenv("FORCE_ALL_CHANNELS", "0") == "1"
+
 UPLOADED_IDS = []
+UPLOADED_CHANNELS = []
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -368,12 +372,16 @@ def generate_thumbnail(video_path: str, output_path: str, title_text: str):
 
 
 def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
+    """
+    Runs the full pipeline for ONE channel: script -> voice -> clips -> compose
+    -> thumbnail -> upload. Also records the per-channel post state so this
+    channel does not post twice the same day.
+    """
     name = channel["name"]
     print(f"\n{'='*60}")
     print(f"  Starting pipeline for {name}")
     print(f"{'='*60}\n")
 
-    # ---- style fingerprint (unique per video, per channel) ----
     style = get_style(channel_index=channel_index)
 
     ch_audio_dir = os.path.join(TEMP_AUDIO_DIR, f"channel_{channel_index}")
@@ -507,6 +515,7 @@ def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
         print(f"https://youtube.com/shorts/{video_id}")
         attach_video_id(USED_TOPICS_FILE, video_id, name)
         UPLOADED_IDS.append(video_id)
+        UPLOADED_CHANNELS.append(name)
 
         if os.path.exists(thumb_path):
             print(f"[{name}] Setting thumbnail...")
@@ -521,6 +530,13 @@ def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
                 video_id, channel["playlist_id"],
                 channel["client_id"], channel["client_secret"], channel["refresh_token"],
             )
+
+        # Mark THIS channel as posted for today
+        try:
+            post_schedule.mark_channel_posted(name, video_id)
+            print(f"[{name}] Channel marked as posted today")
+        except Exception as e:
+            print(f"[{name}] mark_channel_posted failed (ignored): {e}")
 
         elapsed = time.time() - start_time
         notify_telegram(
@@ -567,34 +583,57 @@ def main():
     print(f"Found {len(channels)} channel(s) to process.\n")
 
     manual = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
-    print("Manual run: test post." if manual
-          else "Scheduled run: posting now.")
+    if manual:
+        print("Manual run: channel gate will run, but you can override with FORCE_ALL_CHANNELS=1")
 
     results = []
     for idx, channel in enumerate(channels):
+        name = channel["name"]
+
+        # ---- PER-CHANNEL GATE ----
+        # Skip if this channel already posted today OR its random hour has not
+        # arrived yet. Manual runs also respect the gate unless FORCE_ALL_CHANNELS=1.
+        if manual and FORCE_ALL_CHANNELS:
+            print(f"[{name}] FORCE_ALL_CHANNELS=1 -> ignoring gate")
+        else:
+            go, reason = post_schedule.channel_should_post_now(idx, name)
+            print(f"[{name}] Gate: go={go} :: {reason}")
+            if not go:
+                results.append((name, None))   # None = skipped
+                continue
+
         try:
             ok = run_channel_pipeline(channel, idx)
-            results.append((channel["name"], ok))
+            results.append((name, ok))
         except Exception as e:
-            print(f"[{channel['name']}] Pipeline crashed: {e}")
-            notify_telegram(f"[{channel['name']}] Pipeline crashed: {e}")
-            results.append((channel["name"], False))
+            print(f"[{name}] Pipeline crashed: {e}")
+            notify_telegram(f"[{name}] Pipeline crashed: {e}")
+            results.append((name, False))
 
     print("\n" + "=" * 60)
     print("  FINAL SUMMARY")
     print("=" * 60)
     for name, ok in results:
-        status = "✅ SUCCESS" if ok else "❌ FAILED"
+        if ok is None:
+            status = "⏭️  SKIPPED (not this channel's hour yet)"
+        elif ok:
+            status = "✅ SUCCESS"
+        else:
+            status = "❌ FAILED"
         print(f"  {name}: {status}")
 
-    if UPLOADED_IDS and not manual:
-        try:
-            mark_posted(",".join(UPLOADED_IDS))
-            print("Daily post marked in post_state.json")
-        except Exception as e:
-            print(f"mark_posted failed (ignored): {e}")
+    # Exit codes:
+    #   * any channel succeeded       -> exit 0
+    #   * all channels failed         -> exit 1 (retry next hour)
+    #   * all channels skipped (gate) -> exit 0 (nothing to do)
+    any_success = any(ok is True for _, ok in results)
+    any_failure = any(ok is False for _, ok in results)
+    all_skipped = all(ok is None for _, ok in results)
 
-    if not all(ok for _, ok in results):
+    if all_skipped:
+        print("All channels skipped by gate - nothing to do this run.")
+        return
+    if not any_success and any_failure:
         raise SystemExit(1)
 
 
