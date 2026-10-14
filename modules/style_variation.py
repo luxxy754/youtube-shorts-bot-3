@@ -1,23 +1,9 @@
 """
 Per-video randomized "editorial fingerprint".
 
-YouTube's reused-content / mass-produced detector flags videos that share the
-SAME visual template (caption position, font size, accent colour, hook card
-position, scene rhythm, transitions). Real human editors never do that - every
-video looks slightly different even on the same channel.
-
-This module gives every run its own tiny style DNA:
-  * caption Y position, X jitter, rotation, size range, words-per-chunk
-  * accent colours (Hormozi yellow-green is not always used)
-  * which caption font family is preferred
-  * hook card position + tilt + fill colour + duration + border style
-  * end question / comment CTA position + duration
-  * scene rhythm (pause length, target shot length)
-  * SFX density + gains
-  * colour grade parameters
-  * transition density + palette bias
-
-Call `get_style()` once per video and pass the dict around.
+Gives every video its own style DNA so no two videos share a template.
+Adds transition-specific fields (density, palette bias, SFX gain) so
+the advanced transitions stay random and varied across videos and channels.
 """
 
 import os
@@ -26,18 +12,17 @@ import hashlib
 from datetime import datetime
 
 
-# ------- accent palettes: the active caption word uses one of these pairs -------
 ACCENT_PALETTES = [
-    [(255, 221, 0), (0, 255, 140)],          # classic Hormozi yellow/green
-    [(255, 255, 255), (255, 82, 82)],        # white + red hot
-    [(0, 229, 255), (255, 214, 0)],          # cyan + amber
-    [(50, 255, 126), (255, 255, 255)],       # mint + white
-    [(255, 105, 180), (255, 255, 0)],        # pink + yellow
-    [(255, 255, 255), (140, 90, 255)],       # white + violet
-    [(255, 200, 60), (255, 60, 60)],         # gold + crimson
-    [(160, 255, 90), (255, 255, 255)],       # lime + white
-    [(255, 240, 200), (255, 100, 0)],        # cream + orange
-    [(0, 255, 255), (255, 0, 200)],          # neon mix
+    [(255, 221, 0), (0, 255, 140)],
+    [(255, 255, 255), (255, 82, 82)],
+    [(0, 229, 255), (255, 214, 0)],
+    [(50, 255, 126), (255, 255, 255)],
+    [(255, 105, 180), (255, 255, 0)],
+    [(255, 255, 255), (140, 90, 255)],
+    [(255, 200, 60), (255, 60, 60)],
+    [(160, 255, 90), (255, 255, 255)],
+    [(255, 240, 200), (255, 100, 0)],
+    [(0, 255, 255), (255, 0, 200)],
 ]
 
 HOOK_CARD_FILLS = [
@@ -45,15 +30,15 @@ HOOK_CARD_FILLS = [
     (12, 12, 30, 210),
     (30, 8, 8, 200),
     (8, 22, 40, 205),
-    (0, 0, 0, 0),          # border-only / transparent card
+    (0, 0, 0, 0),
 ]
 
 HOOK_CARD_TEXT_COLORS = [
-    (255, 235, 59, 255),   # yellow
-    (255, 255, 255, 255),  # white
-    (0, 255, 140, 255),    # green
-    (255, 120, 120, 255),  # soft red
-    (255, 200, 60, 255),   # amber
+    (255, 235, 59, 255),
+    (255, 255, 255, 255),
+    (0, 255, 140, 255),
+    (255, 120, 120, 255),
+    (255, 200, 60, 255),
 ]
 
 COMMENT_PILL_FILLS = [
@@ -63,22 +48,18 @@ COMMENT_PILL_FILLS = [
     (8, 20, 35, 200),
 ]
 COMMENT_PILL_BORDERS = [
-    (255, 214, 0, 255),    # yellow
-    (0, 255, 140, 255),    # green
-    (255, 255, 255, 240),  # white
-    (255, 105, 180, 255),  # pink
-    (0, 229, 255, 255),    # cyan
+    (255, 214, 0, 255),
+    (0, 255, 140, 255),
+    (255, 255, 255, 240),
+    (255, 105, 180, 255),
+    (0, 229, 255, 255),
 ]
 
-PREFERRED_FONTS = ["anton", "bangers", "luckiest", "lilita", "bebas", "marker", "poppins",
-                   "archivo", "titan", "bungee", "russo", "staat", "passion", "sigmar",
-                   "righteous", "kanit"]
-
+PREFERRED_FONTS = ["anton", "bangers", "luckiest", "lilita", "bebas", "marker", "poppins"]
 HOOK_FONT_SIZES = [96, 100, 104, 108, 112, 116]
 
 
 def _seed_from_env():
-    """Each GH Actions run should produce a different style."""
     src = (
         os.getenv("GITHUB_RUN_ID", "")
         + os.getenv("GITHUB_RUN_NUMBER", "")
@@ -88,13 +69,12 @@ def _seed_from_env():
     return int(hashlib.sha256(src.encode()).hexdigest(), 16) % (2**32)
 
 
-def get_style(seed=None):
+def get_style(seed=None, channel_index=0):
     rnd = random.Random(seed if seed is not None else _seed_from_env())
 
-    from modules.caption_modes import pick_mode
     style = {
-        # ---------- caption look (6 different templates) ----------
-        "caption_mode": os.getenv("CAPTION_MODE") or pick_mode(rnd),
+        # ---------- channel awareness ----------
+        "channel_index": channel_index,
 
         # ---------- caption layout ----------
         "caption_y_ratio": rnd.choice([0.58, 0.60, 0.62, 0.64, 0.66, 0.68, 0.70]),
@@ -147,16 +127,27 @@ def get_style(seed=None):
         "vignette_angle": rnd.choice(["PI/7", "PI/6", "PI/5"]),
         "grain_strength": rnd.choice([3, 4, 5, 6]),
 
-        # ---------- transitions ----------
-        "transition_density": rnd.choice([0.25, 0.35, 0.45, 0.55, 0.65]),
+        # ---------- transitions (advanced pack) ----------
+        # higher density = more transitions, fewer hard cuts
+        "transition_density": rnd.choice([0.65, 0.75, 0.80, 0.85, 0.90]),
+        # palette bias (may be overridden by channel_index in transitions module)
         "transition_palette_bias": rnd.choice(["fast", "medium", "slow"]),
+        # how loud the transition-specific SFX will be
+        "sfx_transition_gain": rnd.choice([0.55, 0.62, 0.70, 0.78]),
+
+        # ---------- pro fx strength (advanced pack: everything on) ----------
+        "fx_base_zoom": rnd.choice([1.04, 1.05, 1.06, 1.07]),
+        "fx_hook_push": rnd.choice([0.26, 0.32, 0.38]),
+        "fx_cut_kick": rnd.choice([0.07, 0.09, 0.11]),
+        "fx_shake_px": rnd.choice([10.0, 14.0, 18.0]),
     }
 
-    print("[style] mode=%s caption_y=%.2f x_jit=%+d rot=%+d deg | hook_y=%.2f tilt=%+.1f deg "
-          "| font=%s | accents=%s | gap=%.2fs shot=%.1fs | transitions=%s/density=%.2f"
-          % (style["caption_mode"], style["caption_y_ratio"], style["caption_x_jitter"],
+    print(f"[style] ch={channel_index} caption_y=%.2f x_jit=%+d rot=%+d deg | "
+          "hook_y=%.2f tilt=%+.1f deg | font=%s | accents=%s | gap=%.2fs shot=%.1fs | "
+          "transitions=%.2f density | sfx_gain=%.2f"
+          % (style["caption_y_ratio"], style["caption_x_jitter"],
              style["caption_rotation"], style["hook_y_ratio"], style["hook_tilt"],
              style["font_family"], style["accents"][0], style["scene_gap"],
-             style["shot_seconds"], style["transition_palette_bias"],
-             style["transition_density"]))
+             style["shot_seconds"], style["transition_density"],
+             style["sfx_transition_gain"]))
     return style
