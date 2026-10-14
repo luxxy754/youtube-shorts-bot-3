@@ -849,6 +849,12 @@ class ShortsComposer:
                     join_modes = transitions_mod.pick_transitions(
                         len(scene_files) - 1, style, seed=transition_seed)
                     print(f"Transition render seed: {transition_seed}; selected: {join_modes}")
+                    custom_count = sum(
+                        1 for m in join_modes
+                        if m is not None and m in transitions_mod.CUSTOM_MODES
+                    )
+                    print(f"Custom effects in this video: {custom_count}/{len(join_modes)} "
+                          f"(papershuffle {'YES' if 'papershuffle' in join_modes else 'NO'})")
                     xfade_out = os.path.join(self.output_dir, "joined_xfade.mp4")
                     xfade_result = transitions_mod.apply_transitions_ffmpeg(
                         scene_files, scene_lens, join_modes,
