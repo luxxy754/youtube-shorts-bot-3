@@ -1,34 +1,26 @@
 """
-Per-channel random daily scheduler: every channel posts ONE Short per day,
-each at its OWN random time (random hour AND random minute) inside US waking hours.
+Per-channel daily scheduler - ONE post per channel per day, random hour.
 
-How it works
-------------
-GitHub Actions cron only "wakes up" once an hour (the `gate` step below). Nothing is
-stored in advance: today's schedule is derived from a hash of (SALT + US-Eastern date),
-so every wake-up computes the SAME plan for that day, and it changes every day.
+Design:
+  * Each channel has its own random target hour per ET date
+    (hash-based, so all wake-ups in a day agree on the same hour).
+  * A workflow can be scheduled every hour; the `gate` command decides
+    whether each channel should post *now*.
+  * Per-channel state file tracks last_post_date_et_<channel> so each
+    channel posts exactly ONCE per day.
+  * Random minute delay (0-45 min) is added by the workflow itself so
+    the upload minute is also random.
 
-  * The posting window (default 10:00-22:00 ET = 7 AM-7 PM Pacific, i.e. everybody in the
-    US is awake) is cut into N equal slices, one per channel.
-  * Each slice gets one random minute (kept POST_EDGE_MIN away from the slice edges,
-    so two channels are never closer than ~2*POST_EDGE_MIN minutes).
-  * Which channel gets which slice is shuffled every day, so channel 1 is not always
-    "the morning channel".
+Env:
+  POST_WINDOW_START    default 10  (10:00 ET)
+  POST_WINDOW_END      default 22  (22:00 ET, exclusive)
+  POST_MAX_DELAY_MIN   default 45
+  POST_TZ              default America/New_York
+  SCHEDULE_SALT        any text (private seed; put in GitHub Secrets)
 
-Each hourly wake-up asks: "which channels are due?"
-  * a channel is due when its target time is at most POST_LEAD_MIN (default 90) minutes
-    away, or already passed, and it has not posted today yet;
-  * main.py then builds the video (takes ~10-25 min) and uploads it with YouTube's
-    `publishAt`, so it goes public at the EXACT random minute, even if GitHub's cron was
-    late. If the target already passed, it is published immediately (catch-up/retry).
-  * after each successful upload main.py calls mark_posted() -> post_state.json
-    (committed back to the repo by the workflow), so nothing is ever posted twice a day.
-
-Pure standard library. Env overrides:
-  CHANNEL_COUNT (default 3), POST_TZ (America/New_York),
-  POST_WINDOW_START (default 10), POST_WINDOW_END (default 22, exclusive),
-  POST_EDGE_MIN (default 30), POST_LEAD_MIN (default 90), POST_CATCHUP_MIN (default 60),
-  SCHEDULE_SALT (any text, makes the daily pattern private).
+CLI:
+  python3 modules/post_schedule.py gate                       -> prints go/delay for whole run
+  python3 modules/post_schedule.py channel_gate <index> <name> -> prints go for ONE channel
 """
 
 import hashlib
@@ -36,17 +28,14 @@ import json
 import os
 import random
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 STATE_FILE = os.getenv("POST_STATE_FILE", "post_state.json")
 TZ = ZoneInfo(os.getenv("POST_TZ", "America/New_York"))
-CHANNEL_COUNT = int(os.getenv("CHANNEL_COUNT", "3"))
 WINDOW_START = int(os.getenv("POST_WINDOW_START", "10"))
-WINDOW_END = int(os.getenv("POST_WINDOW_END", "22"))        # exclusive
-EDGE_MIN = int(os.getenv("POST_EDGE_MIN", "30"))
-LEAD_MIN = int(os.getenv("POST_LEAD_MIN", "90"))
-CATCHUP_MIN = int(os.getenv("POST_CATCHUP_MIN", "60"))      # retry allowed this long after window end
+WINDOW_END = int(os.getenv("POST_WINDOW_END", "22"))
+MAX_DELAY_MIN = int(os.getenv("POST_MAX_DELAY_MIN", "45"))
 SALT = os.getenv("SCHEDULE_SALT") or os.getenv("GITHUB_REPOSITORY") or "shorts"
 
 
@@ -58,105 +47,189 @@ def _today(now=None):
     return _now(now).strftime("%Y-%m-%d")
 
 
-def _at(date_str, minute_of_day):
-    """Aware ET datetime for `minute_of_day` on `date_str`."""
-    base = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=TZ)
-    return base + timedelta(minutes=minute_of_day)
-
-
-def day_schedule(date_str, n=None):
-    """{channel_index: minute_of_day} - deterministic for that ET date, random across days."""
-    n = n or CHANNEL_COUNT
-    seed = int(hashlib.sha256(f"{SALT}:{date_str}".encode()).hexdigest(), 16)
-    rng = random.Random(seed)
-    start, end = WINDOW_START * 60, WINDOW_END * 60
-    span = (end - start) / n
-    slots = []
-    for i in range(n):
-        lo = int(start + i * span + EDGE_MIN)
-        hi = int(start + (i + 1) * span - EDGE_MIN)
-        slots.append(rng.randint(lo, max(lo, hi)))
-    order = list(range(n))
-    rng.shuffle(order)
-    return {order[i]: slots[i] for i in range(n)}
+def _target_hour_for_channel(date_str, channel_index):
+    """
+    Deterministic-but-unpredictable target hour for a given date+channel.
+    Same date + same channel index -> same hour all day.
+    Different channels -> different hours.
+    """
+    seed_text = f"{SALT}:{date_str}:ch{channel_index}"
+    seed = int(hashlib.sha256(seed_text.encode()).hexdigest(), 16)
+    rnd = random.Random(seed)
+    # avoid two channels getting the same hour by giving each a small slice
+    span = WINDOW_END - WINDOW_START
+    if span < 1:
+        return WINDOW_START
+    return WINDOW_START + rnd.randrange(span)
 
 
 def _load_state(path=None):
     try:
         with open(path or STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
     except Exception:
         return {}
 
 
-def posted_channels(now=None, path=None):
-    state = _load_state(path)
-    if state.get("date") != _today(now):
-        return {}
-    return state.get("posted", {})
+def _save_state(data, path=None):
+    try:
+        with open(path or STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"[schedule] state save failed: {e}")
 
 
-def due_channels(now=None, n=None, path=None):
-    """Returns ({channel_index: target_datetime_ET}, reasons[])."""
-    n = n or CHANNEL_COUNT
-    nw = _now(now)
-    date = _today(nw)
-    done = posted_channels(nw, path)
-    sched = day_schedule(date, n)
-    cutoff = _at(date, WINDOW_END * 60 + CATCHUP_MIN)
-    due, reasons = {}, []
-    for ch in range(n):
-        target = _at(date, sched[ch])
-        tag = f"ch{ch + 1} target {target.strftime('%H:%M')} ET"
-        if str(ch) in done:
-            reasons.append(f"{tag}: already posted today")
-        elif nw > cutoff:
-            reasons.append(f"{tag}: day is over, skipped")
-        elif nw + timedelta(minutes=LEAD_MIN) >= target:
-            due[ch] = target
-            reasons.append(f"{tag}: DUE" + (" (late, catching up)" if nw >= target else ""))
-        else:
-            reasons.append(f"{tag}: waiting")
-    return due, reasons
+def _channel_posted_today(state, channel_name, today):
+    key = f"last_post_date_et_{channel_name}"
+    return state.get(key) == today
 
 
-def mark_posted(channel_index, video_id="", now=None, path=None):
+def channel_should_post_now(channel_index, channel_name, now=None, path=None):
+    """
+    For a single channel: returns (go: bool, reason: str).
+    - Already posted today -> False.
+    - Current ET hour == target hour -> True.
+    - Current ET hour > target hour AND not yet posted today AND still in window -> True (catch up).
+    - Otherwise -> False.
+    """
     n = _now(now)
-    date = _today(n)
+    today = _today(n)
     state = _load_state(path)
-    if state.get("date") != date:
-        state = {"date": date, "posted": {}}
-    state.setdefault("posted", {})[str(channel_index)] = {
-        "time_et": n.strftime("%H:%M"), "video_id": video_id,
-    }
-    with open(path or STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
+    if _channel_posted_today(state, channel_name, today):
+        return False, f"{channel_name}: already posted today"
+
+    target = _target_hour_for_channel(today, channel_index)
+
+    if not (WINDOW_START <= n.hour < WINDOW_END):
+        return False, (f"{channel_name}: outside window (ET hour {n.hour}, "
+                       f"target {target})")
+    if n.hour == target:
+        return True, f"{channel_name}: target hour {target} ET reached"
+    if n.hour > target:
+        return True, (f"{channel_name}: target hour {target} ET passed, "
+                      f"catching up (now {n.hour})")
+    return False, f"{channel_name}: waiting (target {target}, now {n.hour})"
 
 
-def to_utc_iso(dt):
-    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def mark_channel_posted(channel_name, video_id="", now=None, path=None):
+    """Record a successful post for one channel."""
+    n = _now(now)
+    state = _load_state(path)
+    today = _today(n)
+    state[f"last_post_date_et_{channel_name}"] = today
+    state[f"last_post_time_et_{channel_name}"] = n.strftime("%H:%M")
+    state[f"last_video_id_{channel_name}"] = video_id
+    history = state.get("history", [])
+    history.append({
+        "date": today,
+        "time": n.strftime("%H:%M"),
+        "channel": channel_name,
+        "video_id": video_id,
+    })
+    state["history"] = history[-120:]
+    _save_state(state, path)
 
 
+def mark_posted(video_id="", now=None, path=None, channel_name=None):
+    """Backward-compat wrapper: routes to mark_channel_posted when a name is given."""
+    if channel_name:
+        return mark_channel_posted(channel_name, video_id, now, path)
+    n = _now(now)
+    state = _load_state(path)
+    state["last_post_date_et"] = _today(n)
+    state["last_post_time_et"] = n.strftime("%H:%M")
+    state["video_id"] = video_id
+    _save_state(state, path)
+
+
+# ---------------------------------------------------------------- CLI ----
 def _gate_cli():
-    due, reasons = due_channels()
-    for r in reasons:
-        print(f"[gate] {r}")
-    plan = {str(ch): to_utc_iso(t) for ch, t in due.items()}
-    print(f"[gate] go={bool(plan)} plan={plan}")
+    """
+    Overall gate (used to decide whether the workflow should proceed).
+    Returns go=True whenever ANY channel could still post today.
+    """
+    manual = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
+    if manual:
+        print("[gate] manual run -> go=True")
+        _write_output("true", 0)
+        return
+
+    n = _now()
+    today = _today(n)
+    state = _load_state()
+
+    # Which channels are configured?
+    channel_names = ["Channel 1"]
+    for i in range(2, 11):
+        if os.getenv(f"YOUTUBE_REFRESH_TOKEN_{i}"):
+            channel_names.append(f"Channel {i}")
+
+    any_go = False
+    any_reason = ""
+    for i, name in enumerate(channel_names):
+        go, reason = channel_should_post_now(i, name, now=n)
+        print(f"[gate] ch{i} ({name}): go={go} :: {reason}")
+        if go:
+            any_go = True
+            any_reason = reason
+            break
+
+    delay = random.randint(0, MAX_DELAY_MIN * 60) if any_go else 0
+    if not any_reason:
+        any_reason = "no channel ready"
+    print(f"[gate] overall go={any_go} delay={delay}s :: {any_reason}")
+    _write_output("true" if any_go else "false", delay)
+
+
+def _channel_gate_cli():
+    """
+    Per-channel gate. Called as: python3 modules/post_schedule.py channel_gate <index> <name>
+    Prints go/delay to GITHUB_OUTPUT.
+    """
+    if len(sys.argv) < 4:
+        print("[channel_gate] usage: channel_gate <index> <name>")
+        _write_output("false", 0)
+        return
+    try:
+        index = int(sys.argv[2])
+    except ValueError:
+        index = 0
+    name = sys.argv[3]
+
+    manual = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
+    if manual:
+        print(f"[channel_gate] ch{index} ({name}): manual -> go=True")
+        _write_output("true", 0)
+        return
+
+    go, reason = channel_should_post_now(index, name)
+    delay = random.randint(0, MAX_DELAY_MIN * 60) if go else 0
+    print(f"[channel_gate] ch{index} ({name}): go={go} delay={delay}s :: {reason}")
+    _write_output("true" if go else "false", delay)
+
+
+def _write_output(go_str, delay):
     out = os.getenv("GITHUB_OUTPUT")
     if out:
-        with open(out, "a") as f:
-            f.write(f"go={'true' if plan else 'false'}\n")
-            f.write(f"plan={json.dumps(plan)}\n")
+        try:
+            with open(out, "a") as f:
+                f.write(f"go={go_str}\ndelay={delay}\n")
+        except Exception as e:
+            print(f"[schedule] could not write GITHUB_OUTPUT: {e}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "gate":
         _gate_cli()
+    elif len(sys.argv) > 1 and sys.argv[1] == "channel_gate":
+        _channel_gate_cli()
     else:
-        # preview: python -m modules.post_schedule
         n = _now()
-        print("ET now:", n.strftime("%Y-%m-%d %H:%M"))
-        for ch, m in sorted(day_schedule(_today(n)).items()):
-            print(f"  channel {ch + 1}: {_at(_today(n), m).strftime('%H:%M')} ET")
-        print(due_channels()[1])
+        print(f"ET now: {n.strftime('%Y-%m-%d %H:%M')}")
+        for i in range(3):
+            name = f"Channel {i+1}"
+            target = _target_hour_for_channel(_today(n), i)
+            state = _load_state()
+            posted = _channel_posted_today(state, name, _today(n))
+            print(f"  ch{i} {name}: target={target}:00 ET, posted_today={posted}")
