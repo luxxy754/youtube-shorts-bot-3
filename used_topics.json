@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-01T10:22:57",
-      "category": "food and cooking science",
-      "format": "personal_what_if",
-      "title": "Khaane Se Pehle Yeh Baat Jaan Lo 🍍",
-      "fact": "Pineapples contain bromelain, a protein-digesting enzyme that temporarily breaks down proteins on human tongue tissue when eaten fresh."
-    },
-    {
       "date": "2026-10-01T10:59:43",
       "category": "history's strangest records and museum objects",
       "format": "shocking_fact",
@@ -807,6 +800,15 @@
       "fact": "The Ostracism Detection Norm causes people to reflexively mimic group members the moment they suspect social exclusion, using unconscious behavioral matching to regain acceptance.",
       "video_id": "fZlDkYUjDz4",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-14T01:08:52",
+      "category": "sleep, dreams and tiredness: what they do to mood and behaviour",
+      "format": "question_first",
+      "title": "Why does a bad night make you furious? #Shorts",
+      "fact": "Sleep deprivation increases amygdala reactivity and reduces prefrontal functional connectivity, causing neutral faces to be perceived as threatening.",
+      "video_id": "PdFzqEaVnPY",
+      "channel": "Channel 3"
     }
   ]
 }
