@@ -133,14 +133,15 @@ jobs:
         FORCE_ALL_CHANNELS: ${{ github.event.inputs.force_all == 'true' && '1' || '0' }}
       run: python main.py
 
-    - name: Commit post_state.json + used_topics.json back to repo
+    - name: Commit post_state.json + used_topics.json + transition_state.json back to repo
       if: always()
       run: |
-        if [ -f used_topics.json ] || [ -f post_state.json ]; then
+        if [ -f used_topics.json ] || [ -f post_state.json ] || [ -f transition_state.json ]; then
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           [ -f used_topics.json ] && git add used_topics.json || true
           [ -f post_state.json ] && git add post_state.json || true
+          [ -f transition_state.json ] && git add transition_state.json || true
           git diff --staged --quiet || git commit -m "chore: update state [skip ci]"
           git pull --rebase || true
           git push || echo "Push failed, skipping"
