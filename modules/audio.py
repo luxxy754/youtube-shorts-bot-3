@@ -1,12 +1,5 @@
 """
-Audio engine v5 - style-aware SFX + human-sounding voice.
-
-Changes in this version
------------------------
-- build_sfx_track / build_final_audio accept a `style` dict so whoosh/pop/click
-  gains are randomized per video (no metronomic sound design).
-- Everything else is unchanged (Kokoro primary + Edge-TTS fallback, humanize
-  chain, broadcast-grade master).
+Audio engine - style-aware SFX + transition SFX + voice.
 """
 
 import asyncio
@@ -22,7 +15,6 @@ import edge_tts
 
 SR = 44100
 
-# ---------------------------------------------------------------- voice ----
 VOICE_CHAIN = [
     os.getenv("TTS_VOICE_PRIMARY",   "en-US-AndrewMultilingualNeural"),
     os.getenv("TTS_VOICE_FALLBACK1", "en-US-BrianMultilingualNeural"),
@@ -34,15 +26,6 @@ VOICE_VOLUME = "+0%"
 
 TTS_ENGINE = os.getenv("TTS_ENGINE", "auto").lower()
 KOKORO_VOICE = os.getenv("KOKORO_VOICE", "af_heart")
-KOKORO_VOICE_FIXED = bool(os.getenv("KOKORO_VOICE"))   # env set -> never rotate
-
-# Each channel gets its OWN voices (so the 3 channels do not sound alike) and every video
-# picks one of them at random. "a,b" = Kokoro blends two voices into a new, unique one.
-KOKORO_CHANNEL_POOLS = {
-    0: ["am_michael", "am_adam", "am_michael,am_adam", "am_eric"],
-    1: ["af_heart", "af_bella", "af_nicole", "af_heart,af_bella"],
-    2: ["am_liam", "am_onyx", "am_fenrir", "am_liam,am_michael"],
-}
 KOKORO_LANG = os.getenv("KOKORO_LANG", "a")
 KOKORO_SR = 24000
 KOKORO_RETRIES = 2
@@ -54,7 +37,6 @@ LAST_ENGINE = None
 
 SILENCE_TRIM_DB = "-45dB"
 SILENCE_KEEP = 0.05
-
 INTER_SCENE_PAUSE = 0.05
 
 POWER_WORDS = {
@@ -68,11 +50,9 @@ POWER_WORDS = {
     "laugh", "touch", "nerve", "reflex", "yourself", "actually", "really",
     "warning", "danger", "dangerous", "help", "worst", "best",
 }
-
 DRAMATIC_PAUSE_WORDS = {"but", "however", "except", "suddenly", "wait"}
 
 
-# ------------------------------------------------------------- SSML layer ----
 def _build_ssml(text, voice, rate, pitch):
     esc = (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
     tokens = re.findall(r"\S+", esc)
@@ -241,17 +221,6 @@ def _rate_pct(rate):
 _KPIPE = None
 
 
-def pick_video_voice(channel_index=0, rng=None):
-    """Choose this video's Kokoro voice (call once per video, before the scene voiceovers)."""
-    global KOKORO_VOICE
-    if KOKORO_VOICE_FIXED:
-        return KOKORO_VOICE
-    pool = KOKORO_CHANNEL_POOLS.get(channel_index % len(KOKORO_CHANNEL_POOLS))
-    KOKORO_VOICE = (rng or random).choice(pool)
-    print(f"[voice] channel {channel_index + 1} -> Kokoro voice '{KOKORO_VOICE}'")
-    return KOKORO_VOICE
-
-
 def kokoro_available():
     try:
         import kokoro      # noqa: F401
@@ -269,13 +238,6 @@ def _kokoro_tts(text, raw_wav, speed, words_out):
         _KPIPE = KPipeline(lang_code=KOKORO_LANG)
 
     chunks, offset = [], 0.0
-    global KOKORO_VOICE
-    if "," in KOKORO_VOICE:                      # blended voice: verify it loads, else use first
-        try:
-            _KPIPE.load_voice(KOKORO_VOICE)
-        except Exception as e:
-            print(f"Voice blend '{KOKORO_VOICE}' unsupported ({e}) - using '{KOKORO_VOICE.split(',')[0]}'")
-            KOKORO_VOICE = KOKORO_VOICE.split(",")[0]
     for res in _KPIPE(text, voice=KOKORO_VOICE, speed=speed, split_pattern=r"\n+"):
         audio = getattr(res, "audio", None)
         if audio is None and isinstance(res, tuple) and len(res) >= 3:
@@ -314,7 +276,7 @@ def _finish(raw_path, output_path, clean, words):
         est = _estimate_words(clean, dur)
         if est:
             _save_word_timings(est, output_path, dur)
-        print(f"WordBoundary incomplete ({len(words)}/{n_words}) - using estimated caption timing")
+        print(f"WordBoundary incomplete ({len(words)}/{n_words}) - estimated caption timing")
     return True
 
 
@@ -456,17 +418,6 @@ def synth_click(dur=0.06, rng=None):
     return _norm(tick * 0.7 + burst * 0.5, 0.7)
 
 
-def synth_ding(dur=0.9):
-    t = _t(dur)
-    sig = (
-        np.sin(2 * np.pi * 1318.5 * t) * 0.6
-        + np.sin(2 * np.pi * 1976.0 * t) * 0.3
-        + np.sin(2 * np.pi * 2637.0 * t) * 0.12
-    ) * np.exp(-t * 6.5)
-    sig *= np.minimum(1, t / 0.004)
-    return _norm(sig, 0.75)
-
-
 def _place(track, sample, start_sec, gain):
     s = int(start_sec * SR)
     if s < 0:
@@ -479,10 +430,10 @@ def _place(track, sample, start_sec, gain):
 
 
 def build_sfx_track(scene_timings, total_duration, out_path, seed=None,
-                    events=None, style=None):
+                    events=None, style=None, transition_sfx=None):
     """
-    SFX aligned to voice. Gains come from `style` so each video has its own
-    sound density (no metronomic template).
+    SFX aligned to voice + scene cuts + transition-specific SFX.
+    transition_sfx: list of {"t", "mode", "kind", "audio", "gain"}.
     """
     style = style or {}
     rng = np.random.default_rng(seed if seed is not None else random.randrange(1 << 30))
@@ -514,7 +465,8 @@ def build_sfx_track(scene_timings, total_duration, out_path, seed=None,
             _place(track, pop, max(0.0, start - 0.04), 0.3)
             continue
         w = whoosh_a if i % 2 else whoosh_b
-        _place(track, w, start - 0.10, whoosh_gain)
+        # quieter than before - the transition SFX will provide the punch
+        _place(track, w, start - 0.10, whoosh_gain * 0.55)
 
     if events:
         click = synth_click(rng=rng)
@@ -526,8 +478,8 @@ def build_sfx_track(scene_timings, total_duration, out_path, seed=None,
                 continue
             if kind == "cut":
                 _place(track, short_a if k % 2 else short_b,
-                       t_ev - 0.07, whoosh_gain * 0.62)
-                _place(track, click, t_ev, click_gain * 0.66)
+                       t_ev - 0.07, whoosh_gain * 0.5)
+                _place(track, click, t_ev, click_gain * 0.6)
             elif kind == "pop":
                 if t_ev < 0.20 or t_ev - last_pop < 0.45:
                     continue
@@ -535,6 +487,21 @@ def build_sfx_track(scene_timings, total_duration, out_path, seed=None,
                 last_pop = t_ev
             elif kind == "click":
                 _place(track, click, t_ev, click_gain)
+
+    # ---- Transition-specific SFX (paper, glitch, light, etc.) ----
+    if transition_sfx:
+        for item in transition_sfx:
+            try:
+                t_ev = float(item["t"])
+                audio = item["audio"]
+                gain = float(item.get("gain", 0.6))
+                if t_ev < 0 or t_ev > total_duration:
+                    continue
+                # start a hair before the cut so the punch lands on the join
+                offset = 0.05
+                _place(track, audio.astype(np.float32), t_ev - offset, gain)
+            except Exception as e:
+                print(f"[audio] transition SFX skipped: {e}")
 
     track = np.tanh(track * 1.15)
     pcm = (np.clip(track, -1, 1) * 32767).astype(np.int16)
@@ -549,7 +516,6 @@ def build_sfx_track(scene_timings, total_duration, out_path, seed=None,
     return out_path
 
 
-# ------------------------------------------------------------------ mix ----
 def _build_voice_track(voice_paths, scene_timings, total_duration, out_path):
     cmd = ["ffmpeg", "-y"]
     for p in voice_paths:
@@ -577,11 +543,8 @@ def _build_voice_track(voice_paths, scene_timings, total_duration, out_path):
 
 def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
                       out_dir="assets/mix", out_name="final_audio.wav",
-                      bgm_level=0.55, sfx_level=0.9, sfx_events=None, style=None):
-    """
-    Master chain: voice EQ + de-esser + compressor; BGM ducked by voice;
-    synthesized SFX (gains from `style`); loudnorm -14 LUFS.
-    """
+                      bgm_level=0.55, sfx_level=0.9, sfx_events=None, style=None,
+                      transition_sfx=None):
     os.makedirs(out_dir, exist_ok=True)
     voice_wav = os.path.join(out_dir, "voice_track.wav")
     sfx_wav = os.path.join(out_dir, "sfx_track.wav")
@@ -589,7 +552,8 @@ def build_final_audio(voice_paths, scene_timings, total_duration, bg_music_path,
 
     _build_voice_track(voice_paths, scene_timings, total_duration, voice_wav)
     build_sfx_track(scene_timings, total_duration, sfx_wav,
-                    events=sfx_events, style=style)
+                    events=sfx_events, style=style,
+                    transition_sfx=transition_sfx)
 
     inputs = ["-i", voice_wav, "-i", sfx_wav]
     has_bgm = bool(bg_music_path and os.path.exists(bg_music_path)
