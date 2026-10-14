@@ -2,14 +2,18 @@ name: Auto Generate and Post YouTube Shorts
 
 on:
   schedule:
-    - cron: '0 11 * * *'
-    - cron: '0 23 * * *'
+    # Wake up every hour inside the ET posting window (10:00-22:00 ET = 14:00-02:00 UTC).
+    # The per-channel gate (modules/post_schedule.py) decides WHICH channel should
+    # post on THIS wake-up. Each channel has its own random target hour per day,
+    # so channels never collide.
+    - cron: '7 14-23 * * *'
+    - cron: '7 0-2 * * *'
   workflow_dispatch:
     inputs:
-      publish_now:
-        description: 'Manual test: foran public upload'
+      force_all:
+        description: 'Force all channels to run now (bypass per-channel gate)'
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
@@ -82,6 +86,11 @@ jobs:
         echo "=== xfade filter check ==="
         ffmpeg -filters 2>/dev/null | grep xfade || echo "xfade NOT FOUND"
 
+    - name: Show today's target hours (for debugging)
+      env:
+        SCHEDULE_SALT: ${{ secrets.SCHEDULE_SALT }}
+      run: python3 modules/post_schedule.py || true
+
     - name: Run Auto-Generation & Auto-Posting Script
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -109,22 +118,30 @@ jobs:
         CAPTION_WORDS: '2'
         LOOP_VIDEO: '1'
         HOOK_TEXT: '1'
-        SCHEDULE_CRON: ${{ github.event.schedule }}
-        PUBLISH_NOW: ${{ github.event.inputs.publish_now }}
         HOOK_CAPTION: '1'
         TTS_VOICE: 'en-US-AndrewNeural'
         TTS_RATE: '+8%'
         PRO_FX: '1'
+
+        # Per-channel scheduling
+        EVENT_NAME: ${{ github.event_name }}
+        SCHEDULE_SALT: ${{ secrets.SCHEDULE_SALT }}
+        POST_WINDOW_START: '10'
+        POST_WINDOW_END: '22'
+        POST_MAX_DELAY_MIN: '45'
+        POST_TZ: 'America/New_York'
+        FORCE_ALL_CHANNELS: ${{ github.event.inputs.force_all == 'true' && '1' || '0' }}
       run: python main.py
 
-    - name: Commit used_topics.json back to repo
+    - name: Commit post_state.json + used_topics.json back to repo
       if: always()
       run: |
-        if [ -f used_topics.json ]; then
+        if [ -f used_topics.json ] || [ -f post_state.json ]; then
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add used_topics.json
-          git diff --staged --quiet || git commit -m "chore: update used_topics [skip ci]"
+          [ -f used_topics.json ] && git add used_topics.json || true
+          [ -f post_state.json ] && git add post_state.json || true
+          git diff --staged --quiet || git commit -m "chore: update state [skip ci]"
           git pull --rebase || true
           git push || echo "Push failed, skipping"
         fi
