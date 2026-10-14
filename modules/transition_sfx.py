@@ -295,7 +295,12 @@ def sfx_punchzoom(rng=None, dur=0.22):
 # DISPATCHER
 # ================================================================
 def _mode_kind(mode):
-    """Return the SFX family for a transition mode."""
+    """
+    Return the SFX family for a transition mode.
+
+    IMPORTANT: papershuffle MUST map to "paper" so it gets the rustle sound.
+    Do not rename or remove that branch.
+    """
     if mode is None:
         return None
     if mode in ("fade", "dissolve", "fadeblack", "fadewhite", "distance"):
@@ -359,7 +364,7 @@ SFX_BUILDERS = {
 
 def build_transition_sfx(mode, rng=None, dur=None):
     """
-    Return (sfx_audio_array, duration). mode=None returns silence.
+    Return (sfx_audio_array, duration). mode=None returns (None, 0.0).
     """
     kind = _mode_kind(mode)
     if kind is None:
