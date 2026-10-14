@@ -1,4 +1,4 @@
-# --- Pillow>=10 compat: moviepy 1.0.3 still uses Image.ANTIALIAS ---
+# --- Pillow>=10 compat ---
 import PIL.Image
 if not hasattr(PIL.Image, "ANTIALIAS"):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
@@ -11,7 +11,7 @@ import re
 import random
 import shutil
 import requests
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from google import genai
 
 from modules.composer import ShortsComposer
@@ -27,8 +27,6 @@ from modules.audio import generate_voiceover, load_word_timings, get_duration
 from modules.brain import generate_script, record_history, attach_video_id
 from modules.post_schedule import mark_posted
 from modules.style_variation import get_style
-from modules import bgm_pool
-from modules import bgm_fetcher           # <-- NEW: one-time BGM downloader
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
@@ -58,11 +56,7 @@ SHOT_SECONDS = float(os.getenv("SHOT_SECONDS", "2.0"))
 MAX_SHOTS_PER_SCENE = 3
 MIN_SHOT_LEN = 1.4
 
-# channel_index -> YouTube video ids uploaded in this run
 UPLOADED_IDS = []
-
-MANUAL = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
-MIN_SCHEDULE_BUFFER_MIN = 4
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -103,10 +97,10 @@ COMMENT_CTA_POOL = [
     "Did you catch yourself doing this?",
 ]
 
-# Only 5 base tags now (was 15). The model supplies 12-20 SPECIFIC tags per video.
-ANCHOR_TAGS = [
-    "psychology facts", "human behavior", "psychology shorts",
-    "shorts", "mind facts",
+BASE_TAGS = [
+    "shorts", "youtubeshorts", "psychology facts", "psychology", "human psychology",
+    "human behavior", "psychology shorts", "mind facts", "amazing facts", "mind blowing facts",
+    "behavioral psychology", "social psychology", "facts you didn't know", "viral shorts", "dark psychology facts",
 ]
 
 
@@ -159,8 +153,7 @@ def _scene_prosody(index, total):
         return "+6%", "+0Hz"
     if total >= 5 and index == 3:
         return "+8%", "+1Hz"
-    return random.choice(["+4%", "+5%", "+6%", "+7%"]), \
-           random.choice(["+0Hz", "+1Hz", "-1Hz"])
+    return random.choice(["+4%", "+5%", "+6%", "+7%"]), random.choice(["+0Hz", "+1Hz", "-1Hz"])
 
 
 def _voices_with_engine(scenes, audio_dir, engine):
@@ -174,8 +167,7 @@ def _voices_with_engine(scenes, audio_dir, engine):
         last_err = None
         for attempt in range(1, 4):
             try:
-                generate_voiceover(scene["narration"], path,
-                                   rate=rate, pitch=pitch, engine=engine)
+                generate_voiceover(scene["narration"], path, rate=rate, pitch=pitch, engine=engine)
                 if os.path.exists(path) and os.path.getsize(path) > 1000:
                     break
             except Exception as e:
@@ -221,8 +213,7 @@ def build_scene_clips(scenes, clip_dir, voice_paths, style):
         keyword = scene.get("search_keyword") or "person thinking"
         alt = scene.get("search_alt") or ""
         query = get_optimized_search_query(keyword)
-        print(f"Scene {index}: '{query}' (alt: '{alt}') | "
-              f"{scene.get('narration', '')[:70]}")
+        print(f"Scene {index}: '{query}' (alt: '{alt}') | {scene.get('narration', '')[:70]}")
 
         if loop_on and index == total and paths:
             loop_copy = os.path.join(clip_dir, f"scene_{index:02d}_loop.mp4")
@@ -244,14 +235,12 @@ def build_scene_clips(scenes, clip_dir, voice_paths, style):
             if index == 1 and FIRST_FRAME_MIN_BRIGHTNESS:
                 try:
                     fetch_scene_video(query, target, min_duration=min_dur,
-                                      min_brightness=FIRST_FRAME_MIN_BRIGHTNESS,
-                                      alt_keyword=alt)
+                                      min_brightness=FIRST_FRAME_MIN_BRIGHTNESS, alt_keyword=alt)
                 except Exception as long_err:
                     print(f"No bright AND long clip for scene 1 ({long_err}); relaxing length")
                     try:
                         fetch_scene_video(query, target, min_duration=3,
-                                          min_brightness=FIRST_FRAME_MIN_BRIGHTNESS,
-                                          alt_keyword=alt)
+                                          min_brightness=FIRST_FRAME_MIN_BRIGHTNESS, alt_keyword=alt)
                     except Exception as bright_err:
                         print(f"No bright clip for scene 1 ({bright_err}); accepting any clip")
                         fetch_scene_video(query, target, min_duration=3, alt_keyword=alt)
@@ -274,57 +263,26 @@ def build_scene_clips(scenes, clip_dir, voice_paths, style):
             if n_shots > 1:
                 try:
                     extras[-1] = fetch_extra_clips(
-                        query, os.path.join(clip_dir, f"scene_{index:02d}"),
-                        n_shots - 1, min_duration=3, alt_keyword=alt,
+                        query, os.path.join(clip_dir, f"scene_{index:02d}"), n_shots - 1,
+                        min_duration=3, alt_keyword=alt,
                     )
                 except Exception as e:
                     print(f"Scene {index}: extra clips skipped: {e}")
                     extras[-1] = []
 
     total_shots = sum(1 + len(x) for x in extras)
-    print(f"Shots in video: {total_shots} clips for {total} scenes "
-          f"(shot_seconds={shot_seconds})")
+    print(f"Shots in video: {total_shots} clips for {total} scenes (shot_seconds={shot_seconds})")
     return paths, extras
 
 
-# ==========================================================================
-# METADATA - now driven by the plan, not by fixed templates.
-# ==========================================================================
 def build_metadata(script, full_narration):
-    plan = script.get("_plan") or {}
-
-    # ---- TITLE ----
     title_core = re.sub(r"#\S+", "", script.get("title", "")).strip()
     if not title_core:
         title_core = random.choice(TITLE_POOL)
+    title = f"{title_core[:75].strip()} #Shorts"[:95]
 
-    title_tag, title_rule = plan.get("title_ending", ("none", "end with no hashtag"))
-    title = title_core[:75].strip()
-
-    # Apply the title ending the plan chose.
-    if title_tag == "plain" or title_tag == "none":
-        pass
-    elif title_tag == "shorts":
-        title = f"{title} #Shorts"
-    elif title_tag == "shorts_psy":
-        title = f"{title} #shorts #psychology"
-    elif title_tag == "shorts_fct":
-        title = f"{title} #shorts #facts"
-    elif title_tag == "mindset":
-        title = f"{title} #shorts #mindset"
-    elif title_tag == "topic_only":
-        # Pull one specific tag the model already produced.
-        model_tags = [t for t in script.get("tags", []) if t]
-        specific = next((t for t in model_tags
-                         if t.lower() not in ANCHOR_TAGS), None)
-        if specific:
-            title = f"{title} #{re.sub(r'[^0-9a-zA-Z]', '', specific)}"
-    title = title[:95]
-
-    # ---- TAGS ----
-    # Model's specific tags first, then a SMALL anchor fallback. Deduped, capped.
     tags, seen, total_chars = [], set(), 0
-    for tag in script.get("tags", []) + ANCHOR_TAGS:
+    for tag in script.get("tags", []) + BASE_TAGS:
         tag = re.sub(r"[#,<>]", "", tag).strip().lower()
         if not tag or tag in seen:
             continue
@@ -334,12 +292,13 @@ def build_metadata(script, full_narration):
         tags.append(tag)
         total_chars += len(tag) + 1
 
-    # ---- HASHTAGS ----
     hashtags, seen_h = [], set()
     candidates = ["#Shorts", "#Psychology", "#PsychologyFacts", "#HumanBehavior",
                   "#MindFacts", "#Facts"]
-    candidates += ["#" + re.sub(r"[^0-9a-zA-Z]", "", t)
-                   for t in script.get("tags", [])]
+    candidates += [
+        "#" + re.sub(r"[^0-9a-zA-Z]", "", t)
+        for t in script.get("tags", [])
+    ]
     for candidate in candidates:
         key = candidate.lower()
         if len(candidate) < 3 or key in seen_h:
@@ -349,77 +308,12 @@ def build_metadata(script, full_narration):
         if len(hashtags) >= 10:
             break
 
-    # ---- DESCRIPTION ----
     body = script.get("description") or full_narration
     cta_line = script.get("comment_cta") or ""
-    desc_cta = plan.get("description_cta") or random.choice([
-        "Tell me in the comments!", "Drop your answer below.",
-        "Let me know in the comments.", "Comment your honest answer.",
-    ])
     if cta_line:
-        body = f"{body}\n\n💬 {cta_line} {desc_cta}"
+        body = f"{body}\n\n💬 {cta_line} Tell me in the comments!"
     description = f"{body}\n\n{' '.join(hashtags)}"[:4900]
     return title, description, tags
-
-
-# ==========================================================================
-# THUMBNAIL - 5 different layout styles, picked per video
-# ==========================================================================
-def _pick_thumb_style():
-    return random.choice([
-        "bottom_center_box",   # original: white text on black box, bottom
-        "top_left_bold",       # big yellow title, top-left, no box
-        "split_band",          # horizontal colour band across the middle
-        "corner_tag",          # small tag in bottom-left corner
-        "center_outline",      # huge centered word, coloured outline
-    ])
-
-
-def _thumb_drawtext_filter(style, safe_title, font_file):
-    """Return the drawtext filter chain for the chosen thumbnail style."""
-    if not font_file:
-        return None
-    if style == "bottom_center_box":
-        return (
-            f"drawtext=text='{safe_title}':"
-            f"fontcolor=white:fontsize=72:"
-            f"box=1:boxcolor=black@0.7:boxborderw=20:"
-            f"x=(w-text_w)/2:y=h*0.75:"
-            f"fontfile={font_file}"
-        )
-    if style == "top_left_bold":
-        return (
-            f"drawtext=text='{safe_title}':"
-            f"fontcolor=#FFD400:fontsize=96:"
-            f"borderw=8:bordercolor=black:"
-            f"x=60:y=200:"
-            f"fontfile={font_file}"
-        )
-    if style == "split_band":
-        return (
-            f"drawbox=x=0:y=h*0.42:w=iw:h=200:color=black@0.75:t=fill,"
-            f"drawtext=text='{safe_title}':"
-            f"fontcolor=white:fontsize=78:"
-            f"borderw=6:bordercolor=black:"
-            f"x=(w-text_w)/2:y=h*0.42+70:"
-            f"fontfile={font_file}"
-        )
-    if style == "corner_tag":
-        return (
-            f"drawtext=text='{safe_title}':"
-            f"fontcolor=white:fontsize=60:"
-            f"box=1:boxcolor=#E53935@0.85:boxborderw=18:"
-            f"x=50:y=h-200:"
-            f"fontfile={font_file}"
-        )
-    # center_outline
-    return (
-        f"drawtext=text='{safe_title}':"
-        f"fontcolor=#00E5FF:fontsize=120:"
-        f"borderw=10:bordercolor=black:"
-        f"x=(w-text_w)/2:y=(h-text_h)/2:"
-        f"fontfile={font_file}"
-    )
 
 
 def generate_thumbnail(video_path: str, output_path: str, title_text: str):
@@ -438,7 +332,7 @@ def generate_thumbnail(video_path: str, output_path: str, title_text: str):
         return None
 
     safe_title = re.sub(r"[^\x20-\x7E]", "", title_text)
-    safe_title = re.sub(r'[:"\'\\\n\r%]', "", safe_title)[:40].strip()
+    safe_title = re.sub(r'[":\'\\\n\r%]', "", safe_title)[:40].strip()
     if not safe_title:
         safe_title = "Amazing Fact"
 
@@ -452,11 +346,14 @@ def generate_thumbnail(video_path: str, output_path: str, title_text: str):
         "scale=1080:1920:force_original_aspect_ratio=increase",
         "crop=1080:1920",
     ]
-    thumb_style = _pick_thumb_style()
-    dt = _thumb_drawtext_filter(thumb_style, safe_title, font_file)
-    if dt:
-        vf_parts.append(dt)
-    print(f"[thumb] style = {thumb_style}")
+    if font_file:
+        vf_parts.append(
+            f"drawtext=text='{safe_title}':"
+            f"fontcolor=white:fontsize=72:"
+            f"box=1:boxcolor=black@0.7:boxborderw=20:"
+            f"x=(w-text_w)/2:y=h*0.75:"
+            f"fontfile={font_file}"
+        )
 
     cmd = ["ffmpeg", "-y", "-i", frame_path,
            "-vf", ",".join(vf_parts),
@@ -470,26 +367,14 @@ def generate_thumbnail(video_path: str, output_path: str, title_text: str):
     return None
 
 
-def resolve_publish_at(target_iso):
-    if not target_iso:
-        return None
-    try:
-        target = datetime.strptime(target_iso, "%Y-%m-%dT%H:%M:%SZ") \
-                         .replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
-    if target - datetime.now(timezone.utc) < timedelta(minutes=MIN_SCHEDULE_BUFFER_MIN):
-        return None
-    return target_iso
-
-
-def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> bool:
+def run_channel_pipeline(channel: dict, channel_index: int) -> bool:
     name = channel["name"]
     print(f"\n{'='*60}")
     print(f"  Starting pipeline for {name}")
     print(f"{'='*60}\n")
 
-    style = get_style()
+    # ---- style fingerprint (unique per video, per channel) ----
+    style = get_style(channel_index=channel_index)
 
     ch_audio_dir = os.path.join(TEMP_AUDIO_DIR, f"channel_{channel_index}")
     ch_clip_dir = os.path.join(SCENE_CLIP_DIR, f"channel_{channel_index}")
@@ -499,9 +384,8 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
 
     start_time = time.time()
 
-    # ---------- 1. Script (now channel-aware) ----------
     print(f"\n[{name}] Generating fresh script...")
-    script = generate_script(client, USED_TOPICS_FILE, channel_index=channel_index)
+    script = generate_script(client, USED_TOPICS_FILE)
     if not script:
         msg = f"[{name}] Script generation failed."
         print(msg)
@@ -513,12 +397,7 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
     full_narration = " ".join(s["narration"] for s in scenes)
     print(f"[{name}] {len(scenes)} scenes | Hook: {scenes[0]['narration']}")
 
-    # ---------- 2. Voiceover ----------
     print(f"\n[{name}] Generating voiceovers...")
-    try:
-        audio_mod.pick_video_voice(channel_index)
-    except Exception as e:
-        print(f"[{name}] voice pick skipped: {e}")
     try:
         voice_paths = build_scene_voiceovers(scenes, ch_audio_dir)
     except Exception as e:
@@ -527,27 +406,33 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
         notify_telegram(msg)
         return False
 
-    # ---------- 3. Stock clips ----------
     print(f"\n[{name}] Downloading stock clips...")
     try:
-        clip_paths, extra_clip_paths = build_scene_clips(scenes, ch_clip_dir,
-                                                          voice_paths, style)
+        clip_paths, extra_clip_paths = build_scene_clips(scenes, ch_clip_dir, voice_paths, style)
     except Exception as e:
         msg = f"[{name}] Video download failed: {e}"
         print(msg)
         notify_telegram(msg)
         return False
 
-    # ---------- 4. Compose ----------
     print(f"\n[{name}] Composing final video...")
     composer = ShortsComposer(output_dir=ch_output_dir)
 
-    # BGM: per-channel rotation via modules.bgm_pool (LRU, no same track twice)
-    bg_music_path = bgm_pool.pick_bgm(channel_index)
-    if bg_music_path:
-        print(f"[{name}] BG music: {bg_music_path}")
-    else:
-        print(f"[{name}] BG music: none found")
+    bg_music_path = None
+    for candidate in [
+        os.path.join("assets", "bgm"),
+        os.path.join("modules", "bg_music.mp3"),
+    ]:
+        if os.path.isdir(candidate):
+            files = [f for f in os.listdir(candidate) if f.lower().endswith(".mp3")]
+            if files:
+                bg_music_path = os.path.join(candidate, random.choice(files))
+                print(f"[{name}] BG music: {bg_music_path}")
+                break
+        elif os.path.isfile(candidate):
+            bg_music_path = candidate
+            print(f"[{name}] BG music: {bg_music_path}")
+            break
 
     if WORD_CAPTIONS:
         captions = None
@@ -563,9 +448,7 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
 
     hook_text = None
     if HOOK_TEXT:
-        hook_text = (script.get("hook_text")
-                     or scenes[0].get("caption")
-                     or scenes[0].get("narration") or "")
+        hook_text = script.get("hook_text") or scenes[0].get("caption") or scenes[0].get("narration") or ""
         print(f"[{name}] Opening text: {hook_text!r}")
 
     comment_cta = script.get("comment_cta") or random.choice(COMMENT_CTA_POOL)
@@ -601,19 +484,15 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
         notify_telegram(msg)
         return False
 
-    # ---------- 5. Thumbnail ----------
     print(f"\n[{name}] Generating thumbnail...")
     thumb_path = os.path.join(ch_output_dir, f"thumbnail_{channel_index}.jpg")
-    generate_thumbnail(final_video_path, thumb_path,
-                       script.get("title", "Amazing Fact"))
+    generate_thumbnail(final_video_path, thumb_path, script.get("title", "Amazing Fact"))
 
-    # ---------- 6. Upload to YouTube ----------
     print(f"\n[{name}] Uploading to YouTube...")
     title, description, tags = build_metadata(script, full_narration)
     print(f"[{name}] Title: {title}")
 
     try:
-        publish_at = None if MANUAL else resolve_publish_at(target_iso)
         video_id = upload_video(
             video_path=final_video_path,
             title=title,
@@ -623,42 +502,30 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
             client_id=channel["client_id"],
             client_secret=channel["client_secret"],
             refresh_token=channel["refresh_token"],
-            publish_at=publish_at,
         )
-        print(f"[{name}] Video uploaded! ID: {video_id}"
-              + (f" (goes public at {publish_at} UTC)" if publish_at else " (public now)"))
+        print(f"[{name}] Video uploaded! ID: {video_id}")
         print(f"https://youtube.com/shorts/{video_id}")
         attach_video_id(USED_TOPICS_FILE, video_id, name)
         UPLOADED_IDS.append(video_id)
-
-        if not MANUAL:
-            try:
-                mark_posted(channel_index, video_id)
-                print(f"[{name}] Daily slot marked in post_state.json")
-            except Exception as e:
-                print(f"[{name}] mark_posted failed (ignored): {e}")
 
         if os.path.exists(thumb_path):
             print(f"[{name}] Setting thumbnail...")
             set_thumbnail(
                 video_id, thumb_path,
-                channel["client_id"], channel["client_secret"],
-                channel["refresh_token"],
+                channel["client_id"], channel["client_secret"], channel["refresh_token"],
             )
 
         if channel["playlist_id"]:
             print(f"[{name}] Adding to playlist...")
             add_to_playlist(
                 video_id, channel["playlist_id"],
-                channel["client_id"], channel["client_secret"],
-                channel["refresh_token"],
+                channel["client_id"], channel["client_secret"], channel["refresh_token"],
             )
 
         elapsed = time.time() - start_time
-        when = f"Public at {publish_at} UTC" if publish_at else "Public now"
         notify_telegram(
             f"[{name}] Video uploaded!\n{title}\n"
-            f"https://youtube.com/shorts/{video_id}\n{when} | {elapsed:.0f}s"
+            f"https://youtube.com/shorts/{video_id}\n{elapsed:.0f}s"
         )
 
     except Exception as e:
@@ -667,9 +534,7 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
         notify_telegram(msg)
         return False
 
-    # ---------- 7. TikTok (only channel 1) ----------
-    if channel_index == 0 and TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET \
-            and TIKTOK_REFRESH_TOKEN:
+    if channel_index == 0 and TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET and TIKTOK_REFRESH_TOKEN:
         print(f"\n[{name}] Uploading to TikTok (draft)...")
         try:
             tiktok_publish_id = upload_to_tiktok(
@@ -696,48 +561,19 @@ def run_channel_pipeline(channel: dict, channel_index: int, target_iso=None) -> 
     return True
 
 
-def load_plan(channels):
-    if MANUAL:
-        only = (os.getenv("ONLY_CHANNEL") or "").strip()
-        if only.isdigit() and 1 <= int(only) <= len(channels):
-            return {int(only) - 1: None}
-        return {i: None for i in range(len(channels))}
-    try:
-        raw = json.loads(os.getenv("PLAN_JSON") or "{}")
-    except ValueError:
-        raw = {}
-    plan = {}
-    for k, v in raw.items():
-        if str(k).isdigit() and int(k) < len(channels):
-            plan[int(k)] = v or None
-    return plan
-
-
 def main():
     print("Starting Automated Short Pipeline...")
-
-    # ---- One-time BGM pool download (skips if pool already has enough) ----
-    bgm_fetcher.ensure_bgm_pool()
-
     channels = get_youtube_channels()
-    print(f"Found {len(channels)} channel(s) configured.\n")
+    print(f"Found {len(channels)} channel(s) to process.\n")
 
-    plan = load_plan(channels)
-    if MANUAL:
-        print("Manual run: test post(s) public NOW (does not use up today's daily slot).")
-    else:
-        print("Scheduled run: channels due now -> "
-              + (", ".join(f"{channels[i]['name']} @ {t or 'now'}"
-                            for i, t in plan.items()) or "none"))
-    if not plan:
-        print("Nothing due - exiting.")
-        return
+    manual = os.getenv("EVENT_NAME", "") == "workflow_dispatch"
+    print("Manual run: test post." if manual
+          else "Scheduled run: posting now.")
 
     results = []
-    for idx in sorted(plan):
-        channel = channels[idx]
+    for idx, channel in enumerate(channels):
         try:
-            ok = run_channel_pipeline(channel, idx, plan[idx])
+            ok = run_channel_pipeline(channel, idx)
             results.append((channel["name"], ok))
         except Exception as e:
             print(f"[{channel['name']}] Pipeline crashed: {e}")
@@ -750,6 +586,13 @@ def main():
     for name, ok in results:
         status = "✅ SUCCESS" if ok else "❌ FAILED"
         print(f"  {name}: {status}")
+
+    if UPLOADED_IDS and not manual:
+        try:
+            mark_posted(",".join(UPLOADED_IDS))
+            print("Daily post marked in post_state.json")
+        except Exception as e:
+            print(f"mark_posted failed (ignored): {e}")
 
     if not all(ok for _, ok in results):
         raise SystemExit(1)
