@@ -1,6 +1,5 @@
 """
-Pro FX stage (pure ffmpeg - fast, deterministic, no MoviePy per-frame python).
-STYLE-AWARE version: the amounts of push/glitch/shake/kick come from `style`.
+Pro FX stage (pure ffmpeg) - STYLE-AWARE.
 """
 
 import os
@@ -83,10 +82,6 @@ def build_filtergraph(cuts, duration, hook=True, style=None):
 
 
 def apply_pro_fx(src, dst, cuts, duration, hook=True, style=None):
-    """
-    src -> dst (.mov/.mp4). Returns True on success. Never raises.
-    `style` may include fx_base_zoom / fx_hook_push / fx_cut_kick / fx_shake_px.
-    """
     if not ENABLED:
         return False
     script = dst + ".filter.txt"
