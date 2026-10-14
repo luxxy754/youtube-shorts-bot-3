@@ -1,11 +1,5 @@
 """
-Video composer - MoviePy + FFmpeg. STYLE + TRANSITION AWARE.
-
-Every render gets a "style" dict (modules.style_variation.get_style) that
-randomizes caption position, hook card position/tilt/colour, end-question
-position, comment pill colours, scene rhythm, SFX gains and the final colour
-grade. Scene joins are randomized too (modules.transitions) so the video never
-uses the same transition palette twice.
+Video composer - MoviePy + FFmpeg. ADVANCED TRANSITIONS + STYLE AWARE.
 """
 
 import filecmp
@@ -25,7 +19,7 @@ import moviepy.audio.fx.all as afx
 from modules.audio import build_final_audio, INTER_SCENE_PAUSE, get_duration
 from modules import pro_fx
 from modules.style_variation import get_style
-from modules import transitions as transitions_mod
+from modules import transitions_advanced as transitions_mod
 
 TARGET_W = 1080
 TARGET_H = 1920
@@ -33,38 +27,32 @@ TARGET_H = 1920
 BG_MUSIC_VOLUME = 0.15
 SCENE_GAP = INTER_SCENE_PAUSE
 
-# Caption defaults (real values come from style)
 CAPTION_FONT_SIZE = 72
 CAPTION_POSITION_RATIO = 0.55
 CAPTION_FADE = 0.10
 CAPTION_MAX_WIDTH = TARGET_W - 100
 
-# CTA settings
 CTA_TEXT = "Follow for more"
 CTA_FONT_SIZE = 58
 CTA_POSITION_RATIO = 0.85
 CTA_START_RATIO = 0.55
 CTA_FADE_DURATION = 0.5
 
-# Pacing defaults (real values come from style)
 JUMP_CUT_TARGET = 2.4
 MAX_SHOTS = 3
 MIN_SHOT = 1.6
 PUNCH_STEP = 0.09
 
-# Shot entry effects
 ENTRY_POP = 0.14
 ENTRY_SHAKE_PX = 14
 SHOT_BASE_SCALE = 1.08
 SHOT_DRIFT_PX = 36
 ENTRY_CHOICES = ["pop", "pop", "flash", "shake", None]
 
-# End question defaults (style overrides)
 END_Q_SHOW = 1.7
 END_Q_Y_RATIO = 0.76
 END_Q_FONT_SIZE = 70
 
-# Hook card defaults (style overrides)
 HOOK_CARD_DURATION = 3.0
 HOOK_CARD_Y_RATIO = 0.20
 HOOK_CARD_FONT_SIZE = 108
@@ -338,9 +326,6 @@ class ShortsComposer:
                 cut_log.append(round(each * i, 3))
         return concatenate_videoclips(parts, method="chain").set_duration(duration)
 
-    # ============================================================
-    # Hook card (STYLE-AWARE)
-    # ============================================================
     def _make_hook_card(self, hook_text, duration=None, style=None):
         style = style or {}
         duration = duration or style.get("hook_duration", HOOK_CARD_DURATION)
@@ -431,9 +416,6 @@ class ShortsComposer:
             print("Hook card build failed: " + str(e))
             return None
 
-    # ============================================================
-    # End question (STYLE-AWARE)
-    # ============================================================
     def _make_end_question_overlay(self, text, total_duration, font_file, style=None):
         style = style or {}
         try:
@@ -499,9 +481,6 @@ class ShortsComposer:
             print("End question overlay failed: " + str(e))
             return None
 
-    # ============================================================
-    # Legacy caption / CTA helpers
-    # ============================================================
     @staticmethod
     def _make_caption_png(text, font_file, font_size=CAPTION_FONT_SIZE):
         try:
@@ -602,9 +581,6 @@ class ShortsComposer:
             print("CTA error: " + str(e))
             return None
 
-    # ============================================================
-    # Fallback audio mixer
-    # ============================================================
     def _add_background_music(self, voice_audio, total_duration, bg_music_path):
         audio_tracks = [voice_audio]
         bg_music = None
@@ -632,7 +608,6 @@ class ShortsComposer:
         return CompositeAudioClip(audio_tracks), bg_music
 
     def _grade_pass(self, src, dst, style=None):
-        """Final ffmpeg pass: colour grade + vignette + light grain. STYLE-AWARE."""
         style = style or {}
         vf = (
             f"eq=contrast={style.get('grade_contrast', 1.06)}:"
@@ -675,7 +650,7 @@ class ShortsComposer:
         return output_path
 
     # ============================================================
-    # MAIN - multi-scene Short builder (STYLE + TRANSITION AWARE)
+    # MAIN
     # ============================================================
     def create_multi_scene_short(self, clip_paths, voiceover_paths,
                                   output_filename="final_short.mp4",
@@ -690,12 +665,11 @@ class ShortsComposer:
                                   extra_clip_paths=None,
                                   comment_cta=None,
                                   style=None):
-        # ---- style fingerprint for this video ----
         style = style or get_style()
         global SCENE_GAP
         SCENE_GAP = style.get("scene_gap", SCENE_GAP)
 
-        print("Multi-scene composition START (style + transitions applied)")
+        print("Multi-scene composition START (advanced transitions)")
 
         if not clip_paths or not voiceover_paths:
             raise ValueError("clip_paths ya voiceover_paths empty hain")
@@ -717,7 +691,6 @@ class ShortsComposer:
         scene_timings = []
         abs_cut_times = []
 
-        # ---- SEAMLESS VISUAL LOOP PLAN ----
         loop_ok = False
         hook_in = None
         try:
@@ -796,9 +769,7 @@ class ShortsComposer:
             total_duration = min(timeline, last_start + last_voice + 0.06)
             print(f"TOTAL TIMELINE: {total_duration:.2f}s")
             if total_duration > 40:
-                raise RuntimeError(
-                    f"Timeline {total_duration:.0f}s too long for a Short "
-                    "(voiceover bug?) - aborting before slow render")
+                raise RuntimeError(f"Timeline {total_duration:.0f}s too long for a Short")
 
             scene_sum = sum(float(s.duration or 0) for s in video_scenes)
             print(f"Safety: video_scenes sum = {scene_sum:.2f}s "
@@ -810,8 +781,6 @@ class ShortsComposer:
                         zip(video_scenes, scene_timings)):
                     expected = voice_d + SCENE_GAP
                     if clip.duration and clip.duration > expected + 0.3:
-                        print(f"   Scene {i+1}: {clip.duration:.2f}s "
-                              f"-> {expected:.2f}s")
                         clip = clip.subclip(0, expected)
                     trimmed.append(clip)
                 video_scenes = trimmed
@@ -819,7 +788,6 @@ class ShortsComposer:
             if not voice_clips:
                 raise RuntimeError("No voice clips ready")
 
-            # ---- SFX EVENTS (style-aware gains) ----
             sfx_events = [(t, "cut") for t in abs_cut_times]
             if hook_text or word_scenes:
                 sfx_events.append((0.03, "click"))
@@ -842,37 +810,11 @@ class ShortsComposer:
             print("SFX events: " + str(len(sfx_events)) +
                   " (" + str(len(abs_cut_times)) + " jump cuts)")
 
-            # ---- AUDIO MASTER ----
-            try:
-                master_path = build_final_audio(
-                    voiceover_paths[:count],
-                    scene_timings,
-                    total_duration,
-                    bg_music_path,
-                    out_dir=os.path.join(self.output_dir, "mix"),
-                    sfx_events=sfx_events,
-                    style=style,
-                )
-                master_clip = AudioFileClip(master_path)
-                opened_audio.append(master_clip)
-
-                real_len = float(master_clip.duration or 0)
-                if real_len > 1.0:
-                    total_duration = min(total_duration, real_len - 0.02)
-                final_audio = master_clip
-            except Exception as e:
-                print("Pro audio mix failed, using simple mix: " + str(e))
-                voice_track = CompositeAudioClip(voice_clips).set_duration(total_duration)
-                final_audio, bg_music = self._add_background_music(
-                    voice_track, total_duration, bg_music_path
-                )
-                if bg_music is not None:
-                    opened_audio.append(bg_music)
-
             # ============================================================
-            # ---- CONCATENATE (with randomized xfade transitions) ----
+            # ---- CONCATENATE (advanced transitions + matched SFX) ----
             # ============================================================
             video = None
+            transition_sfx_list = []
             try:
                 scene_lens = []
                 for i, (start_t, voice_d) in enumerate(scene_timings):
@@ -906,26 +848,29 @@ class ShortsComposer:
                     join_modes = transitions_mod.pick_transitions(
                         len(scene_files) - 1, style)
                     xfade_out = os.path.join(self.output_dir, "joined_xfade.mp4")
-                    ok = transitions_mod.apply_transitions_ffmpeg(
+                    xfade_result = transitions_mod.apply_transitions_ffmpeg(
                         scene_files, scene_lens, join_modes,
                         SCENE_GAP, xfade_out,
                         transition_time=transitions_mod.pick_duration(style),
+                        style=style,
                     )
-                    if ok:
+                    if xfade_result.get("ok"):
                         joined = VideoFileClip(xfade_out)
                         opened_video.append(joined)
                         video = joined
-                        print("Scenes joined with randomized xfade transitions")
+                        transition_sfx_list = xfade_result.get("transition_sfx", [])
+                        print(f"Scenes joined with randomized xfade transitions "
+                              f"({len(transition_sfx_list)} matched SFX)")
                     else:
                         print("xfade stage failed - falling back to plain concat")
             except Exception as e:
                 print("xfade pipeline error: " + str(e))
+                transition_sfx_list = []
 
             if video is None:
                 print("Using plain concatenate (no transitions)")
                 video = concatenate_videoclips(video_scenes, method="chain")
 
-            # ---- DURATION SAFETY AFTER XFADE ----
             if video.duration and video.duration > total_duration + 0.05:
                 print(f"Trim after xfade: {video.duration:.2f}s -> {total_duration:.2f}s")
                 video = video.subclip(0, total_duration)
@@ -940,10 +885,39 @@ class ShortsComposer:
                 except Exception as e:
                     print("Pad after xfade failed: " + str(e))
 
+            # ============================================================
+            # ---- AUDIO MASTER (includes transition SFX) ----
+            # ============================================================
+            try:
+                master_path = build_final_audio(
+                    voiceover_paths[:count],
+                    scene_timings,
+                    total_duration,
+                    bg_music_path,
+                    out_dir=os.path.join(self.output_dir, "mix"),
+                    sfx_events=sfx_events,
+                    style=style,
+                    transition_sfx=transition_sfx_list,
+                )
+                master_clip = AudioFileClip(master_path)
+                opened_audio.append(master_clip)
+
+                real_len = float(master_clip.duration or 0)
+                if real_len > 1.0:
+                    total_duration = min(total_duration, real_len - 0.02)
+                final_audio = master_clip
+            except Exception as e:
+                print("Pro audio mix failed, using simple mix: " + str(e))
+                voice_track = CompositeAudioClip(voice_clips).set_duration(total_duration)
+                final_audio, bg_music = self._add_background_music(
+                    voice_track, total_duration, bg_music_path
+                )
+                if bg_music is not None:
+                    opened_audio.append(bg_music)
+
             video = video.set_audio(final_audio).set_duration(total_duration)
             print(f"Final video duration: {video.duration:.2f}s")
 
-            # ---- PRO FX stage ----
             if pro_fx.ENABLED:
                 try:
                     base_tmp = os.path.join(self.output_dir, "base_nofx.mov")
@@ -968,7 +942,6 @@ class ShortsComposer:
 
             overlays = []
 
-            # ---- HOOK CARD ----
             try:
                 hook_source = (hook_text or "").strip()
                 if not hook_source and word_scenes:
@@ -985,7 +958,6 @@ class ShortsComposer:
             except Exception as e:
                 print("Hook card failed: " + str(e))
 
-            # ---- WORD-BY-WORD CAPTIONS (style-aware) ----
             if word_scenes:
                 try:
                     from modules.captions import build_word_caption_clips
@@ -1006,14 +978,12 @@ class ShortsComposer:
                     if caption is not None:
                         overlays.append(caption)
 
-            # ---- END QUESTION ----
             if end_question and font_file:
                 eq = self._make_end_question_overlay(end_question, total_duration,
                                                      font_file, style=style)
                 if eq is not None:
                     overlays.append(eq)
 
-            # ---- COMMENT CTA pill ----
             if comment_cta:
                 try:
                     from modules.captions import build_comment_cta_clip
@@ -1025,13 +995,11 @@ class ShortsComposer:
                 except Exception as e:
                     print("Comment CTA failed (ignored): " + str(e))
 
-            # ---- CTA ----
             if add_cta and font_file:
                 cta_overlay = self._make_cta_overlay(total_duration, font_file)
                 if cta_overlay is not None:
                     overlays.append(cta_overlay)
 
-            # ---- COMPOSITE OVERLAYS ----
             if overlays:
                 try:
                     video = CompositeVideoClip(
@@ -1063,7 +1031,7 @@ class ShortsComposer:
         return output_path
 
     # ============================================================
-    # Single-clip Short builder (kept for backward compatibility)
+    # Single-clip (backward compat)
     # ============================================================
     def create_short(self, video_path, voiceover_path,
                      output_filename="final_short.mp4",
