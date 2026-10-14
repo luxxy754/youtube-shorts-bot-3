@@ -1,23 +1,5 @@
 """
-Word-by-word English captions (Submagic / Hormozi style) - STYLE-AWARE.
-
-Changes in this version
------------------------
-- Captions accept a `style` dict (from modules.style_variation.get_style).
-  Every video gets its own caption Y position, X offset, rotation, size range,
-  accent palette, font family preference, words-per-chunk and stroke thickness.
-
-- The spoken word is highlighted (accent colour + bigger). Already-spoken words
-  of the same phrase stay white.
-
-- Every word gets its own font + size. Important words (long / "power" words)
-  are drawn BIG in a loud display font, filler words (the, a, of ...) small.
-
-- Pure PIL rendering. Google Fonts auto-downloaded into assets/fonts on first
-  run; if a download fails the code falls back to the system bold font.
-
-Timing: if the voiceover step saved REAL word timings (<mp3>.words.json) they
-are used directly -> frame-accurate sync.
+Word-by-word captions - STYLE-AWARE.
 """
 
 import os
@@ -47,15 +29,6 @@ FONT_SPECS = {
     "lilita":   ("LilitaOne-Regular.ttf",     _GF + "lilitaone/LilitaOne-Regular.ttf", False),
     "marker":   ("PermanentMarker-Regular.ttf", _GF + "permanentmarker/PermanentMarker-Regular.ttf", False),
     "poppins":  ("Poppins-ExtraBold.ttf",     _GF + "poppins/Poppins-ExtraBold.ttf", False),
-    "archivo":  ("ArchivoBlack-Regular.ttf",  _GF + "archivoblack/ArchivoBlack-Regular.ttf", True),
-    "titan":    ("TitanOne-Regular.ttf",      _GF + "titanone/TitanOne-Regular.ttf", True),
-    "bungee":   ("Bungee-Regular.ttf",        _GF + "bungee/Bungee-Regular.ttf", True),
-    "russo":    ("RussoOne-Regular.ttf",      _GF + "russoone/RussoOne-Regular.ttf", False),
-    "staat":    ("Staatliches-Regular.ttf",   _GF + "staatliches/Staatliches-Regular.ttf", True),
-    "passion":  ("PassionOne-Bold.ttf",       _GF + "passionone/PassionOne-Bold.ttf", True),
-    "sigmar":   ("SigmarOne-Regular.ttf",     _GF + "sigmarone/SigmarOne-Regular.ttf", True),
-    "righteous": ("Righteous-Regular.ttf",    _GF + "righteous/Righteous-Regular.ttf", False),
-    "kanit":    ("Kanit-ExtraBold.ttf",       _GF + "kanit/Kanit-ExtraBold.ttf", False),
 }
 
 SYSTEM_FALLBACKS = [
@@ -65,10 +38,7 @@ SYSTEM_FALLBACKS = [
     "C:/Windows/Fonts/arialbd.ttf",
 ]
 
-ACCENTS = [
-    (255, 221, 0),
-    (0, 255, 140),
-]
+ACCENTS = [(255, 221, 0), (0, 255, 140)]
 
 STOP_WORDS = {
     "a", "an", "the", "is", "are", "was", "were", "be", "been", "am", "of", "to", "in", "on",
@@ -92,7 +62,6 @@ _font_cache = {}
 _available = None
 
 
-# ---------------------------------------------------------------- fonts ----
 def _looks_like_font(data):
     return len(data) > 10_000 and data[:4] in (b"\x00\x01\x00\x00", b"OTTO", b"true", b"ttcf")
 
@@ -151,7 +120,6 @@ def _load_font(path, size):
     return _font_cache[key]
 
 
-# --------------------------------------------------------------- planning ----
 def _clean_display(word):
     word = re.sub(r"[^\w'\u2019-]", "", word, flags=re.UNICODE)
     return word.upper()
@@ -234,7 +202,6 @@ def plan_word_events(scenes, scene_timings, total_duration,
     return chunks
 
 
-# ---------------------------------------------------------------- styling ----
 def _importance(words):
     importance = []
     for w in words:
@@ -254,19 +221,11 @@ def _importance(words):
 
 def hero_word_times(scenes, scene_timings, total_duration,
                     word_timings=None, style=None):
-    """Start times of every hero caption word -> used for 'pop' sound effects."""
     style = style or {}
     times = []
-    try:
-        from modules import caption_modes as CM
-        _mode = style.get("caption_mode", "pop")
-        _wpc = CM.words_per_chunk(_mode, style) if _mode in CM.MODE_WEIGHTS and _mode != "pop" \
-            else style.get("words_per_chunk")
-    except Exception:
-        _wpc = style.get("words_per_chunk")
     for chunk in plan_word_events(scenes, scene_timings, total_duration,
                                   word_timings,
-                                  words_per_chunk=_wpc):
+                                  words_per_chunk=style.get("words_per_chunk")):
         imp = _importance(chunk["words"])
         for w, level in zip(chunk["words"], imp):
             if level == 2 and w["t0"] < total_duration - 0.2:
@@ -324,7 +283,6 @@ def style_chunks(chunks, style=None, seed=None):
     return chunks
 
 
-# -------------------------------------------------------------- rendering ----
 def _layout(chunk):
     dummy = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
     metrics = []
@@ -393,35 +351,19 @@ def render_chunk_frame(chunk, active_idx, pop=False, style=None):
 
 def build_word_caption_clips(scenes, scene_timings, total_duration,
                              seed=None, word_timings=None, style=None):
-    """
-    Return moviepy ImageClips ready for CompositeVideoClip.
-    Every spoken word -> a short 'pop' frame followed by the normal highlighted frame.
-    """
     import numpy as np
     from moviepy.editor import ImageClip
 
     style = style or {}
-    from modules import caption_modes as CM
-    mode = style.get("caption_mode", "pop")
-    if mode not in CM.MODE_WEIGHTS:
-        mode = "pop"
-    print("[captions] mode = " + mode)
 
-    wpc = CM.words_per_chunk(mode, style) if mode != "pop" else style.get("words_per_chunk")
     events = plan_word_events(scenes, scene_timings, total_duration, word_timings,
-                              words_per_chunk=wpc)
-    if mode == "pop":
-        chunks = style_chunks(events, style=style, seed=seed)
-        render = lambda ch, i, pop_: render_chunk_frame(ch, i, pop=pop_, style=style)
-    else:
-        chunks = CM.style_chunks_mode(events, mode, style, seed=seed)
-        render = lambda ch, i, pop_: CM.render_frame(mode, ch, i, pop_, style)
+                              words_per_chunk=style.get("words_per_chunk"))
+    chunks = style_chunks(events, style=style, seed=seed)
     clips = []
 
-    y_ratio = (CM.caption_y_ratio(mode, style) if mode != "pop"
-               else style.get("caption_y_ratio", DEFAULT_CAPTION_CENTER_RATIO))
+    y_ratio = style.get("caption_y_ratio", DEFAULT_CAPTION_CENTER_RATIO)
     x_jit = style.get("caption_x_jitter", 0)
-    rotation = 0 if mode in CM.NO_ROTATE else style.get("caption_rotation", 0)
+    rotation = style.get("caption_rotation", 0)
 
     def _add(frame, t0, dur):
         if dur <= 0.02:
@@ -429,7 +371,7 @@ def build_word_caption_clips(scenes, scene_timings, total_duration,
         clip = ImageClip(np.array(frame), transparent=True).set_start(t0).set_duration(dur)
         y = int(TARGET_H * y_ratio - frame.height / 2)
         if x_jit:
-            x = int(TARGET_W // 2 + x_jit - frame.width / 2)
+            x = int(TARGET_W // 2 + x_jit - frame.shape[1] / 2)
             clip = clip.set_position((x, y))
         else:
             clip = clip.set_position(("center", y))
@@ -449,23 +391,15 @@ def build_word_caption_clips(scenes, scene_timings, total_duration,
                 continue
             dur = min(dur, total_duration - t0)
             pop = min(POP_TIME, dur * 0.5)
-            _add(render(chunk, idx, True), t0, pop)
-            _add(render(chunk, idx, False), t0 + pop, dur - pop)
+            _add(render_chunk_frame(chunk, idx, pop=True, style=style), t0, pop)
+            _add(render_chunk_frame(chunk, idx, pop=False, style=style),
+                 t0 + pop, dur - pop)
 
     print(str(len(clips)) + " word-caption frames built "
           + ("(real word timings)" if word_timings and any(word_timings) else "(estimated timings)"))
-
-    # Word-matched stickers (brain -> 3D brain, money -> 3D money bag ...). Never breaks captions.
-    try:
-        from modules.stickers import build_sticker_clips
-        clips.extend(build_sticker_clips(
-            chunks, total_duration, caption_center_y=TARGET_H * y_ratio, seed=seed))
-    except Exception as e:
-        print("Stickers skipped: " + str(e))
     return clips
 
 
-# ------------------------------------------------- comment-bait overlay ----
 def _pop_scale(t, pop_dur=0.11):
     import math
     if t >= pop_dur:
@@ -475,10 +409,6 @@ def _pop_scale(t, pop_dur=0.11):
 
 
 def build_comment_cta_clip(text, scene_timings, total_duration, style=None):
-    """
-    Pill with a question at the end of the video. Style-aware: position, colours,
-    pill fill and border are randomized per video.
-    """
     import numpy as np
     from moviepy.editor import ImageClip
 
