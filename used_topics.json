@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-01T19:29:27",
-      "category": "extreme weather (lightning, storms, ice, rain)",
-      "format": "myth_vs_truth",
-      "title": "Aasman mein kahan jati hai ulti bijli ⚡",
-      "fact": "Lightning can travel upwards from clouds into the upper atmosphere in phenomena known as blue jets and red sprites."
-    },
-    {
-      "date": "2026-10-01T20:28:59",
-      "category": "deserts, mountains and extreme places on Earth",
-      "format": "top3",
-      "title": "Dharti Ki 3 Khatarnak Jagah! 🌍",
-      "fact": "Three extreme places on Earth with unusual properties: Antarctica's rainless dry valleys, Ecuador's space-closest Mount Chimborazo, and Ethiopia's sterile acidic springs of Dallol."
-    },
-    {
       "date": "2026-10-02T07:30:01",
       "category": "space, planets, stars and astronauts",
       "format": "personal_what_if",
@@ -814,6 +800,24 @@
       "title": "Why Neutral Texts Feel So Hostile #Shorts",
       "fact": "Without nonverbal cues, human psychology defaults to a negative interpretation bias, making neutral text messages feel hostile.",
       "video_id": "0pV2dJbSeYA",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-14T11:16:12",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "personal_what_if",
+      "title": "Why you secretly think everyone agrees with you",
+      "fact": "The False Consensus Effect causes people to overestimate the degree to which their own opinions and values are shared by others.",
+      "video_id": "e3_uw0AVwLA",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-14T11:20:17",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "myth_vs_truth",
+      "title": "Why people judge you for what you say about others",
+      "fact": "Spontaneous trait transference causes listeners to unconsciously attribute the traits they describe in others directly to themselves.",
+      "video_id": "EIo8UbNczQo",
       "channel": "Channel 3"
     }
   ]
