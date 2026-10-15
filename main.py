@@ -149,10 +149,15 @@ def get_optimized_search_query(text):
 
 
 def _scene_prosody(index, total):
+    # Hook: slower + lower = a friend leaning in with something BIG (not a fast ad read).
     if index == 1:
-        return "+9%", "+3Hz"
+        return "+2%", "-2Hz"
+    # Teaser: picks up energy, raises the stakes.
+    if index == 2:
+        return "+8%", "+1Hz"
+    # Payoff (second-last): slow and heavy so the reveal lands.
     if total >= 4 and index == total - 1:
-        return "+1%", "-2Hz"
+        return "+0%", "-2Hz"
     if index == total:
         return "+6%", "+0Hz"
     if total >= 5 and index == 3:
@@ -196,9 +201,11 @@ def build_scene_voiceovers(scenes, audio_dir, channel_index=0):
         except Exception as e:
             if pref == "kokoro":
                 raise
-            print(f"Kokoro failed ({e}) -> using Edge-TTS for ALL scenes")
+            print(f"::warning::Kokoro failed ({e}) -> using Edge-TTS for ALL scenes")
+            notify_telegram(f"⚠️ Kokoro voice failed, Edge-TTS used for this video: {str(e)[:300]}")
     elif pref in ("auto", "kokoro"):
-        print("Kokoro not installed -> Edge-TTS fallback voice")
+        print(f"::warning::Kokoro not installed -> Edge-TTS fallback voice ({audio_mod._KOKORO_ERR})")
+        notify_telegram(f"⚠️ Kokoro not available, Edge-TTS used: {audio_mod._KOKORO_ERR}")
     paths = _voices_with_engine(scenes, audio_dir, "edge")
     print("Voice engine: Edge-TTS")
     return paths
