@@ -52,6 +52,8 @@ jobs:
         done
         sudo apt-get $APT_OPTS install -y --no-install-recommends \
           ffmpeg \
+          espeak-ng \
+          libsndfile1 \
           imagemagick \
           libjpeg-dev \
           zlib1g-dev \
@@ -72,10 +74,31 @@ jobs:
         sudo sed -i 's/policy domain="coder" rights="none" pattern="PDF"/policy domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
         convert -version || magick -version || echo "ImageMagick check failed"
 
+    - name: Cache Kokoro model (Hugging Face)
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/huggingface
+        key: kokoro-hf-v1
+
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
+        # CPU-only torch: ~200MB instead of ~2GB of CUDA libs, installs fast and never times out
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Pre-warm Kokoro (shows the REAL error early, never fails the build)
+      continue-on-error: true
+      run: |
+        python - <<'PY'
+        import numpy as np
+        from kokoro import KPipeline
+        p = KPipeline(lang_code="a")
+        n = 0
+        for r in p("Your brain lies to you... every single morning.", voice="af_heart"):
+            n += len(r.audio)
+        print("KOKORO PREWARM OK, samples:", n)
+        PY
 
     - name: Verify Fonts + FFmpeg
       run: |
@@ -119,6 +142,8 @@ jobs:
         LOOP_VIDEO: '1'
         HOOK_TEXT: '1'
         HOOK_CAPTION: '1'
+        TTS_ENGINE: 'auto'
+        HOOK_DOCTOR: '1'
         TTS_VOICE: 'en-US-AndrewNeural'
         TTS_RATE: '+8%'
         PRO_FX: '1'
