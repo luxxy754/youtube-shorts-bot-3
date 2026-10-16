@@ -1,1 +1,1 @@
-{"bag": ["flash_color", "vertopen", "filmburn", "hlslice", "vdslice", "wipeup", "smoothup", "whipzoom_out", "flash_white", "whipzoom_in", "spinzoom", "inkdrip", "vertclose", "scanline", "hrslice", "diagtr", "smoothleft", "rgbsplit", "pixelsort", "radial", "diagtl", "horzclose"], "total_modes": 50}
+{"bag": ["whipzoom_in", "spinzoom", "inkdrip", "vertclose", "scanline", "hrslice", "diagtr", "smoothleft", "rgbsplit", "pixelsort", "radial", "diagtl", "horzclose"], "total_modes": 50}

@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-02T14:03:33",
-      "category": "sports and the limits of the human body",
-      "format": "myth_vs_truth",
-      "title": "Kya Aap Ghode Ko Hara Sakte Hain? 🏃‍♂️",
-      "fact": "Humans are the ultimate long-distance endurance runners on Earth because our sweating mechanism prevents overheating, unlike animals."
-    },
-    {
-      "date": "2026-10-02T19:28:05",
-      "category": "food and cooking science",
-      "format": "shocking_fact",
-      "title": "Aaloo se banti hai bijli ⚡",
-      "fact": "Raw potatoes contain a high concentration of starch that naturally conducts and generates mild electricity when paired with copper and zinc."
-    },
-    {
       "date": "2026-10-03T08:31:07",
       "category": "human body and brain (eyes, heart, hands, sleep)",
       "format": "top3",
@@ -824,6 +810,24 @@
       "title": "Why you pretend to agree with wrong people 😳",
       "fact": "People routinely abandon their own obvious correct observations and conform to an incorrect majority to avoid social conflict.",
       "video_id": "AQc64OuaQhY",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-16T18:02:04",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "story",
+      "title": "Why You Smile When Someone Hurts You #Shorts",
+      "fact": "Nervous smiling or fawning during hostile social interactions is an unconscious appeasement display evolved to de-escalate aggression before emotional pain registers.",
+      "video_id": "-2T2mH40MIs",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-16T18:05:10",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "personal_what_if",
+      "title": "Your voice drops around your crush #shorts #mindset",
+      "fact": "Vocal pitch drops when speaking to someone we are attracted to because physical arousal alters vocal cord tension.",
+      "video_id": "u5Kizho6SlE",
       "channel": "Channel 3"
     }
   ]
