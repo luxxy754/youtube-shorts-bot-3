@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-03T09:03:21",
-      "category": "deep ocean and sea animals",
-      "format": "myth_vs_truth",
-      "title": "Blobfish Ka Asli Sach! 🐟",
-      "fact": "The blobfish looks like a gelatinous blob on land only because of depressurization, but looks like a normal fish in its deep-sea habitat under high pressure."
-    },
-    {
       "date": "2026-10-03T12:42:29",
       "category": "money, gold and strange facts about wealth",
       "format": "shocking_fact",
@@ -831,6 +824,15 @@
       "fact": "Social neuroscience reveals that loneliness does not dull social perception; it triggers social hypervigilance where individuals decode vocal tones and facial expressions faster, but reflexively misinterpret neutral cues as rejection.",
       "video_id": "EAnmL5ZD4fY",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-18T00:59:05",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "story",
+      "title": "Why A Tilted Neck Instantly Pulls People In",
+      "fact": "Tilting the head exposes the carotid artery and vulnerable neck, an evolutionary signal of safety and non-threat that triggers subconscious trust and approachability.",
+      "video_id": "F8XwYvOdNIU",
+      "channel": "Channel 2"
     }
   ]
 }
