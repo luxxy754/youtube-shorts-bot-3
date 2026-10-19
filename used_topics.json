@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-03T18:08:33",
-      "category": "extreme weather (lightning, storms, ice, rain)",
-      "format": "personal_what_if",
-      "title": "Toofan mein baal khade ho toh kya karein? ⚡",
-      "fact": "When hair stands on end during a thunderstorm, it indicates a high static ground charge preparing to connect with a cloud's lightning streamer for an imminent strike."
-    },
-    {
       "date": "2026-10-03T18:13:22",
       "category": "deserts, mountains and extreme places on Earth",
       "format": "myth_vs_truth",
@@ -839,6 +832,15 @@
       "fact": "Venting anger does not release emotional tension but instead reinforces hostile neural pathways and physiological arousal, a debunked catharsis myth in social psychology.",
       "video_id": "4uPhmlPC0bA",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-19T19:56:07",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "psychology_effect",
+      "title": "Stop Taking Things Personally 🤫 #shorts #mindset",
+      "fact": "Hostile attribution bias leads people to systematically interpret ambiguous or unintentional social behavior as deliberately hostile or malicious.",
+      "video_id": "8eoSlTDZ1bE",
+      "channel": "Channel 3"
     }
   ]
 }
