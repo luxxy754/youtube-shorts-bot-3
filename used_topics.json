@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-04T08:52:13",
-      "category": "space, planets, stars and astronauts",
-      "format": "personal_what_if",
-      "title": "Space Me Bina Helmet Kya Hoga? 👨‍🚀",
-      "fact": "Exposing a human body to space vacuum causes body fluids like saliva to boil due to zero atmospheric pressure, but a person can survive up to 90 seconds if rescued without exploding."
-    },
-    {
-      "date": "2026-10-04T13:24:59",
-      "category": "sports and the limits of the human body",
-      "format": "mystery_explained",
-      "title": "Paani Ke Andar Dil Ka Secret! 🌊",
-      "fact": "The mammalian dive reflex slows down the human heart rate and shifts blood flow to preserve core organs when diving deep underwater."
-    },
-    {
       "date": "2026-10-04T13:31:09",
       "category": "human body and brain (eyes, heart, hands, sleep)",
       "format": "top3",
@@ -845,6 +831,24 @@
       "fact": "Social psychology reveals that envy between close friends is driven by self-evaluation maintenance rather than malice, occurring specifically when a friend's success overlaps with our own identity goals.",
       "video_id": "DW7NLNZZB5A",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-20T18:30:41",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "story",
+      "title": "Why extra gifts secretly ruin your present",
+      "fact": "The presenter's paradox demonstrates that adding an inexpensive bonus item to an expensive gift lowers its overall perceived value because the human mind averages the bundle rather than summing it up.",
+      "video_id": "Jd0GA5EJK_Y",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-20T18:37:39",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "personal_what_if",
+      "title": "Why You Get Sleepy Around Someone You Love #Shorts",
+      "fact": "Social baseline theory shows that being around a trusted loved one signals complete safety, prompting the brain to drop defensive vigilance and releasing suppressed fatigue as sudden drowsiness.",
+      "video_id": "eAygIAefh0g",
+      "channel": "Channel 3"
     }
   ]
 }
