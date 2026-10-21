@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-04T18:18:20",
-      "category": "volcanoes, earthquakes and how the Earth works",
-      "format": "myth_vs_truth",
-      "title": "धरती के नीचे लावा कैसे बनता है 🌋",
-      "fact": "Underground rock melts into magma when pressure drops as it rises, or when water lowers its melting point."
-    },
-    {
-      "date": "2026-10-04T18:23:44",
-      "category": "money, gold and strange facts about wealth",
-      "format": "mystery_explained",
-      "title": "सोना अंतरिक्ष से आया था! ☄️",
-      "fact": "Almost all accessible gold on Earth was delivered by meteorite impacts during the late veneer period."
-    },
-    {
       "date": "2026-10-05T09:33:22",
       "category": "deep ocean and sea animals",
       "format": "top3",
@@ -851,6 +837,24 @@
       "fact": "Replaying unfair insults or harsh words is not self-punishment; evolutionary psychology shows the brain treats social rejection as a threat to survival and rehearses the event to recognize future danger.",
       "video_id": "bJCHa_5Dt78",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-21T18:36:59",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "story",
+      "title": "Why that stranger stared right at you #Shorts",
+      "fact": "Prolonged eye contact triggers an automatic adrenaline response that the brain often misinterprets as romantic attraction.",
+      "video_id": "jPD3zi6VOJs",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-21T18:41:13",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "psychology_effect",
+      "title": "Why room lighting changes who you date #shorts #mindset",
+      "fact": "People rate strangers as more attractive when photographed in warm lighting versus cool lighting, known as the color temperature attraction bias.",
+      "video_id": "Ydsruy_IUKY",
+      "channel": "Channel 3"
     }
   ]
 }
