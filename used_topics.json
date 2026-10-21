@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-04T13:31:09",
-      "category": "human body and brain (eyes, heart, hands, sleep)",
-      "format": "top3",
-      "title": "Aapka sharir aapko andha kar sakta hai? 👁️",
-      "fact": "The body's immune system doesn't know about the eyes and can attack them if exposed by injury; fingers have no muscles; and one brain hemisphere stays alert in new environments."
-    },
-    {
       "date": "2026-10-04T18:18:20",
       "category": "volcanoes, earthquakes and how the Earth works",
       "format": "myth_vs_truth",
@@ -849,6 +842,15 @@
       "fact": "Social baseline theory shows that being around a trusted loved one signals complete safety, prompting the brain to drop defensive vigilance and releasing suppressed fatigue as sudden drowsiness.",
       "video_id": "eAygIAefh0g",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-21T01:34:11",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "myth_vs_truth",
+      "title": "Why Harsh Words Replay In Your Head #shorts #psychology",
+      "fact": "Replaying unfair insults or harsh words is not self-punishment; evolutionary psychology shows the brain treats social rejection as a threat to survival and rehearses the event to recognize future danger.",
+      "video_id": "bJCHa_5Dt78",
+      "channel": "Channel 1"
     }
   ]
 }
