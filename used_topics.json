@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-05T09:33:22",
-      "category": "deep ocean and sea animals",
-      "format": "top3",
-      "title": "Samudra Ki Sabse Ajeeb Baatein 🌊",
-      "fact": "Whale falls create isolated deep sea ecosystems and Antarctic ice fish possess clear blood lacking hemoglobin."
-    },
-    {
       "date": "2026-10-05T09:41:18",
       "category": "dreams and sleep",
       "format": "myth_vs_truth",
@@ -855,6 +848,15 @@
       "fact": "People rate strangers as more attractive when photographed in warm lighting versus cool lighting, known as the color temperature attraction bias.",
       "video_id": "Ydsruy_IUKY",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-22T01:30:54",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "personal_what_if",
+      "title": "Why You Instantly Forget Names 🧠",
+      "fact": "The next-in-line effect causes people to fail to encode a person's name during an introduction because working memory shifts focus to preparing their own upcoming response.",
+      "video_id": "0_rAKqQS1GY",
+      "channel": "Channel 1"
     }
   ]
 }
