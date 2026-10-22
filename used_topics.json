@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-05T16:19:00",
-      "category": "history's strangest records and museum objects",
-      "format": "mystery_explained",
-      "title": "म्यूजियम का अजीब राज़ 🏛️",
-      "fact": "A museum once accidentally replaced a real mummified human toe with a papier-mâché fake during cleaning, only to discover the mistake decades later."
-    },
-    {
-      "date": "2026-10-05T16:24:48",
-      "category": "wild animals and their survival tricks",
-      "format": "top3",
-      "title": "जानवरों के तीन सबसे खतरनाक सर्वाइवल सीक्रेट्स 🤯",
-      "fact": "Three animal survival tricks involving bizarre physiological defense mechanisms: opossums playing dead into a deep coma-like state, sea cucumbers expelling their internal organs to confuse predators, and wood frogs freezing their blood solid to survive winter."
-    },
-    {
       "date": "2026-10-05T21:38:14",
       "category": "ancient civilizations, temples and ruins",
       "format": "myth_vs_truth",
@@ -859,6 +845,24 @@
       "fact": "People automatically copy the vocal tone, speech rate, and accent of strangers during brief conversations, an unconscious form of social tuning called phonetic convergence used to build instant rapport.",
       "video_id": "ZkcMDZpGzSM",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-22T22:21:17",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "psychology_effect",
+      "title": "Why You Avoid Empty Restaurants",
+      "fact": "An informational cascade occurs when individuals make decisions based on the observed actions of others, assuming the crowd possesses superior information even when their own senses suggest otherwise.",
+      "video_id": "RO2JwFPG40E",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-22T22:26:06",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "myth_vs_truth",
+      "title": "Why you instantly trust people who copy your moves",
+      "fact": "People trust strangers who copy their physical posture and micro-gestures because behavioral matching signals safety and shared identity.",
+      "video_id": "FrqPhG45uuw",
+      "channel": "Channel 2"
     }
   ]
 }
