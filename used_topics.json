@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-05T09:41:18",
-      "category": "dreams and sleep",
-      "format": "myth_vs_truth",
-      "title": "Neend Mein Chalne Walon Ka Sach! 😴",
-      "fact": "Waking a sleepwalker does not cause a heart attack, but it can trigger extreme disorientation and aggressive defensive behavior because their brain is in a mixed state of deep sleep and wakefulness."
-    },
-    {
       "date": "2026-10-05T16:19:00",
       "category": "history's strangest records and museum objects",
       "format": "mystery_explained",
@@ -857,6 +850,15 @@
       "fact": "The next-in-line effect causes people to fail to encode a person's name during an introduction because working memory shifts focus to preparing their own upcoming response.",
       "video_id": "0_rAKqQS1GY",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-22T18:31:31",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "story",
+      "title": "Why you start talking like strangers #habits",
+      "fact": "People automatically copy the vocal tone, speech rate, and accent of strangers during brief conversations, an unconscious form of social tuning called phonetic convergence used to build instant rapport.",
+      "video_id": "ZkcMDZpGzSM",
+      "channel": "Channel 3"
     }
   ]
 }
