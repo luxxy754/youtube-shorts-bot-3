@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-05T21:38:14",
-      "category": "ancient civilizations, temples and ruins",
-      "format": "myth_vs_truth",
-      "title": "Pahaad Kaat Kar Bana Kailasa Mandir 🤯",
-      "fact": "The Kailasa Temple at Ellora Caves was carved out of a single basalt rock cliff from top to bottom, with workers removing around two hundred thousand tons of rock without modern heavy machinery."
-    },
-    {
-      "date": "2026-10-05T21:42:20",
-      "category": "trees, plants and forests",
-      "format": "shocking_fact",
-      "title": "Ped Ke Patto Mein Sona! 🍃✨",
-      "fact": "Eucalyptus trees can absorb microscopic gold particles from deep underground deposits and transport them to their leaves."
-    },
-    {
       "date": "2026-10-06T09:20:00",
       "category": "deserts, mountains and extreme places on Earth",
       "format": "mystery_explained",
@@ -863,6 +849,24 @@
       "fact": "People trust strangers who copy their physical posture and micro-gestures because behavioral matching signals safety and shared identity.",
       "video_id": "FrqPhG45uuw",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-23T22:08:03",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "story",
+      "title": "Why Doing Favors Makes You Care #relationships",
+      "fact": "The Ben Franklin effect shows that doing someone a small favor increases your liking for them because your brain justifies the action.",
+      "video_id": "GcraVAniyGg",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-23T22:10:47",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "psychology_effect",
+      "title": "Why you think they hate your posts #attention",
+      "fact": "Spotlight effect causes people to believe others notice and judge their online actions far more than they actually do, projecting personal self-doubt onto neutral digital behavior.",
+      "video_id": "RUvneLZWZsU",
+      "channel": "Channel 3"
     }
   ]
 }
