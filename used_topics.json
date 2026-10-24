@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-06T09:26:09",
-      "category": "fire, ice and extreme temperatures",
-      "format": "top3",
-      "title": "Train ki patri par kaan kyu nahi lagana chahiye? 🤯",
-      "fact": "Sound travels much faster through steel and water than through air due to higher density and tighter molecular bonds."
-    },
-    {
-      "date": "2026-10-06T14:24:01",
-      "category": "food and cooking science",
-      "format": "shocking_fact",
-      "title": "मीठा सिरप असल में पानी होता है! 🥞",
-      "fact": "Maple syrup is made from boiled down watery tree sap that lacks natural sweetness until cooked and concentrated through evaporation."
-    },
-    {
       "date": "2026-10-06T14:29:30",
       "category": "psychology and everyday human habits",
       "format": "personal_what_if",
@@ -868,6 +854,24 @@
       "title": "Why you copy strangers without realizing it 👥",
       "fact": "People unconsciously mirror the postures, mannerisms, and vocal rhythms of strangers during conversation—known as the chameleon effect—which automatically increases mutual rapport and social trust.",
       "video_id": "Pumn6Qaxkdw",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-24T20:48:27",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "story",
+      "title": "Why Being Hurt Makes Us Petty 🍩 #relationships",
+      "fact": "Experiencing emotional hurt triggers psychological victim entitlement, leading people to unconsciously break minor rules and act more selfishly to restore perceived fairness.",
+      "video_id": "UvitZ_6-FG8",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-24T20:58:20",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "myth_vs_truth",
+      "title": "Why Crying Alone Makes You Hurt Worse 💔",
+      "fact": "Crying alone does not reliably bring catharsis; social psychology demonstrates tears evolved as a social distress signal that primarily brings relief when others respond with comforting support.",
+      "video_id": "9FvCmHQQm9g",
       "channel": "Channel 2"
     }
   ]
