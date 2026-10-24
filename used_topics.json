@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-06T09:20:00",
-      "category": "deserts, mountains and extreme places on Earth",
-      "format": "mystery_explained",
-      "title": "Neeli Aag Ka Asli Sach! 🌋",
-      "fact": "The Kawah Ijen volcano in Indonesia appears to erupt blue lava, but it is actually the combustion of highly pressurized sulfuric gases that burn with a blue flame upon contact with air."
-    },
-    {
       "date": "2026-10-06T09:26:09",
       "category": "fire, ice and extreme temperatures",
       "format": "top3",
@@ -867,6 +860,15 @@
       "fact": "Spotlight effect causes people to believe others notice and judge their online actions far more than they actually do, projecting personal self-doubt onto neutral digital behavior.",
       "video_id": "RUvneLZWZsU",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-24T00:39:52",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "personal_what_if",
+      "title": "Why you copy strangers without realizing it 👥",
+      "fact": "People unconsciously mirror the postures, mannerisms, and vocal rhythms of strangers during conversation—known as the chameleon effect—which automatically increases mutual rapport and social trust.",
+      "video_id": "Pumn6Qaxkdw",
+      "channel": "Channel 2"
     }
   ]
 }
