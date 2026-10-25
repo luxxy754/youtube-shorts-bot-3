@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-06T19:45:46",
-      "category": "science labs, experiments and discoveries",
-      "format": "top3",
-      "title": "Aawaz se cheezein hawa mein udti hain! 🤯",
-      "fact": "Sound waves can be used to levitate small objects and liquids using acoustic radiation pressure."
-    },
-    {
       "date": "2026-10-06T19:51:57",
       "category": "money, gold and strange facts about wealth",
       "format": "myth_vs_truth",
@@ -874,6 +867,15 @@
       "title": "Why Your Friends Misunderstand Your Texts 📱",
       "fact": "The closeness-communication bias causes people to communicate less clearly with close friends than with strangers because they overestimate how well friends understand their vague cues.",
       "video_id": "71ccyE0e7zM",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-25T17:48:10",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "story",
+      "title": "What Someone's Feet Are Secretly Telling You 👀",
+      "fact": "Lower body orientation reflects genuine social focus and intent because people consciously manage their facial expressions but rarely regulate where their feet are pointed.",
+      "video_id": "Nl1AYT4z_0E",
       "channel": "Channel 3"
     }
   ]
