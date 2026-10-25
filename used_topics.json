@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-06T14:29:30",
-      "category": "psychology and everyday human habits",
-      "format": "personal_what_if",
-      "title": "छींक रोकना पड़ सकता है भारी 🤯",
-      "fact": "When people try to hold back a sneeze, the sudden trapped high pressure can cause serious injuries such as a ruptured eardrum, popped blood vessels in the eyes, or even damage to the throat."
-    },
-    {
       "date": "2026-10-06T19:45:46",
       "category": "science labs, experiments and discoveries",
       "format": "top3",
@@ -873,6 +866,15 @@
       "fact": "Crying alone does not reliably bring catharsis; social psychology demonstrates tears evolved as a social distress signal that primarily brings relief when others respond with comforting support.",
       "video_id": "9FvCmHQQm9g",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-25T01:10:22",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "psychology_effect",
+      "title": "Why Your Friends Misunderstand Your Texts 📱",
+      "fact": "The closeness-communication bias causes people to communicate less clearly with close friends than with strangers because they overestimate how well friends understand their vague cues.",
+      "video_id": "71ccyE0e7zM",
+      "channel": "Channel 3"
     }
   ]
 }
