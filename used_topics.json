@@ -101,13 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-07T14:42:56",
-      "category": "deep ocean and sea animals",
-      "format": "top3",
-      "title": "समुद्र के तीन सबसे अजीब जीव 🌊",
-      "fact": "Three bizarre deep-sea phenomena include vampire squids turning inside out, barreleye fish having transparent heads with barrel-shaped eyes, and xenophyophores growing as giant single-celled amoebas on the ocean floor."
-    },
-    {
       "date": "2026-10-07T16:07:16",
       "category": "deserts, mountains and extreme places on Earth",
       "format": "mystery_explained",
@@ -882,6 +875,15 @@
       "title": "Why Guests Forget Most of Your Party #Shorts",
       "fact": "Behavioral psychology shows that people evaluate social events almost entirely by the peak emotional moment and how the event ended, ignoring the overall duration.",
       "video_id": "Z3orqsfg7dU",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-27T19:29:43",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "story",
+      "title": "Why everyone freezes when danger starts",
+      "fact": "When people are uncertain in a crowd, pluralistic ignorance causes everyone to privately doubt an emergency while publicly mimicking calm inaction.",
+      "video_id": "skGLIuC3e9c",
       "channel": "Channel 1"
     }
   ]
