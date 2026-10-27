@@ -101,24 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-07T16:07:16",
-      "category": "deserts, mountains and extreme places on Earth",
-      "format": "mystery_explained",
-      "hook_pattern": "impossible",
-      "hook": "achanak maut dikhti hai is sukhi jagah par.",
-      "title": "रेगिस्तान में ये अजीब दीवार कहाँ से आई 🏜️",
-      "fact": "In the Atacama Desert, powerful winds and sand erosion carve massive natural rock formations and canyons that look like giant walls."
-    },
-    {
-      "date": "2026-10-07T16:08:09",
-      "category": "dreams and sleep",
-      "format": "personal_what_if",
-      "hook_pattern": "aap_question",
-      "hook": "sote hue aankhen hilakar baat karna mumkin hai!",
-      "title": "नींद में आंखें हिलाकर बात करना सच है 🤯",
-      "fact": "Lucid dreamers can communicate with the outside world using pre-arranged eye movements while remaining fully asleep."
-    },
-    {
       "date": "2026-10-07T20:06:52",
       "category": "volcanoes, earthquakes and how the Earth works",
       "format": "shocking_fact",
@@ -885,6 +867,24 @@
       "fact": "When people are uncertain in a crowd, pluralistic ignorance causes everyone to privately doubt an emergency while publicly mimicking calm inaction.",
       "video_id": "skGLIuC3e9c",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-27T23:48:44",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "personal_what_if",
+      "title": "Why Eye Contact Feels So Intense 👀 #shorts #facts",
+      "fact": "When you lock eyes with someone you find attractive, your autonomic nervous system dilates your pupils, and the other person's brain unconsciously interprets dilated pupils as a sign of mutual interest, instantly increasing your perceived attractiveness.",
+      "video_id": "kgafNGd7njA",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-27T23:53:24",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "myth_vs_truth",
+      "title": "Why Helpful People Annoy You #Shorts",
+      "fact": "Unsolicited help triggers a threat to perceived autonomy and competence, causing irritation rather than gratitude.",
+      "video_id": "mblKIaH0A6s",
+      "channel": "Channel 3"
     }
   ]
 }
