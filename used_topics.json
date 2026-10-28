@@ -101,17 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-07T20:06:52",
-      "category": "volcanoes, earthquakes and how the Earth works",
-      "format": "shocking_fact",
-      "hook_pattern": "warning",
-      "hook": "yahan sona matlab maut ko bulawa dena hai.",
-      "title": "Sote Hue Maut Ban Gaya Yeh Paani 💀",
-      "fact": "A limnic eruption at Lake Nyos in 1986 suddenly released a massive cloud of carbon dioxide, suffocating about 1,700 people in nearby villages while they slept.",
-      "video_id": "dCVVQ-ZtVy8",
-      "channel": "Channel 1"
-    },
-    {
       "date": "2026-10-07T20:08:43",
       "category": "psychology and everyday human habits",
       "format": "top3",
@@ -885,6 +874,15 @@
       "fact": "Unsolicited help triggers a threat to perceived autonomy and competence, causing irritation rather than gratitude.",
       "video_id": "mblKIaH0A6s",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-28T19:45:57",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "story",
+      "title": "Why Left On Read Hurts So Much #Shorts",
+      "fact": "Response latency bias causes people to mistakenly view normal text delays as personal rejection.",
+      "video_id": "tIc3h6ws3XI",
+      "channel": "Channel 1"
     }
   ]
 }
