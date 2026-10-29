@@ -101,17 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-07T20:08:43",
-      "category": "psychology and everyday human habits",
-      "format": "top3",
-      "hook_pattern": "bold_claim",
-      "hook": "saavdhan! aapka dimaag roz aapse jhoot bolta hai.",
-      "title": "Dimag ke yeh hidden secrets jaante ho? 🧠",
-      "fact": "Human psychology is influenced by physical environment and posture, such as holding warm drinks affecting warmth perception and sitting upright boosting confidence.",
-      "video_id": "85cgWTcVRjQ",
-      "channel": "Channel 2"
-    },
-    {
       "date": "2026-10-08T08:13:56",
       "category": "trees, plants and forests",
       "format": "mystery_explained",
@@ -883,6 +872,15 @@
       "fact": "Response latency bias causes people to mistakenly view normal text delays as personal rejection.",
       "video_id": "tIc3h6ws3XI",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-29T00:02:58",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "psychology_effect",
+      "title": "How Friends Steal Your Memories #Shorts",
+      "fact": "Memory conformity leads people to unconsciously alter their own genuine memories to align with social peers, prioritizing interpersonal belonging and harmony over factual accuracy.",
+      "video_id": "Qc6Df1P3u4o",
+      "channel": "Channel 3"
     }
   ]
 }
