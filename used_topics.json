@@ -101,15 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-08T08:13:56",
-      "category": "trees, plants and forests",
-      "format": "mystery_explained",
-      "title": "Amazon ke Devil Garden ka sach! 🐜",
-      "fact": "In the Amazon rainforest, 'Devil's Gardens' consisting entirely of Duroia hirsuta trees are created by Myrmelachista schumanni ants, which kill other plant species by injecting formic acid into their leaves.",
-      "video_id": "12UWJLpxulQ",
-      "channel": "Channel 1"
-    },
-    {
       "date": "2026-10-08T08:18:55",
       "category": "human body and brain (eyes, heart, hands, sleep)",
       "format": "shocking_fact",
@@ -881,6 +872,15 @@
       "fact": "Memory conformity leads people to unconsciously alter their own genuine memories to align with social peers, prioritizing interpersonal belonging and harmony over factual accuracy.",
       "video_id": "Qc6Df1P3u4o",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-29T19:41:07",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "personal_what_if",
+      "title": "Why You Unfairly Judge Your Friends 🧠",
+      "fact": "The fundamental attribution error causes people to attribute others' actions to character while attributing their own actions to situational circumstances.",
+      "video_id": "az8_-J_BUls",
+      "channel": "Channel 1"
     }
   ]
 }
