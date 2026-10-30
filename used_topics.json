@@ -101,33 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-08T09:24:30",
-      "category": "extreme weather (lightning, storms, ice, rain)",
-      "format": "myth_vs_truth",
-      "title": "Tire Nahi, Ye Bachayega Bijli Se! ⚡",
-      "fact": "Car tires do not protect against lightning strikes; instead, the vehicle's metal body acts as a Faraday cage to divert current, meaning plastic or fiberglass cars offer no protection.",
-      "video_id": "WWvFkNbGWKQ",
-      "channel": "Channel 1"
-    },
-    {
-      "date": "2026-10-08T09:27:40",
-      "category": "space, planets, stars and astronauts",
-      "format": "personal_what_if",
-      "title": "Jupiter Par Gire To Kya Hoga? 🥶",
-      "fact": "Jupiter is a gas giant with no solid surface, meaning falling into it results in falling continuously through immense pressure and heat that would instantly crush and burn a human.",
-      "video_id": "3op01TGA0B0",
-      "channel": "Channel 2"
-    },
-    {
-      "date": "2026-10-08T09:30:47",
-      "category": "wild animals and their survival tricks",
-      "format": "shocking_fact",
-      "title": "Aankhon se khoon kyun phenkti hai ye lizard? 🦎",
-      "fact": "The horned lizard can squirt foul-tasting blood from its eyes up to five feet by increasing pressure in its head.",
-      "video_id": "mEQbxQFVc-s",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-08T10:55:37",
       "category": "psychology of first impressions, attraction and body language (only well-established findings)",
       "format": "myth_vs_truth",
@@ -880,6 +853,33 @@
       "title": "Why rejection actually makes you cold 🥶 #shorts #psychology",
       "fact": "When people experience social exclusion, their actual physical skin temperature drops because the brain processes emotional warmth and physical warmth through the same neural region.",
       "video_id": "olcASYrIUMY",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-30T19:19:00",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "personal_what_if",
+      "title": "Why Hiding Your Hurt Backfires #shorts #psychology",
+      "fact": "Suppressing emotional hurt through expressive suppression spikes sympathetic cardiovascular arousal and depletes working memory, causing people to forget details of the painful interaction.",
+      "video_id": "biSih3WFIR4",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-30T19:25:44",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "myth_vs_truth",
+      "title": "Why Fast Apologies Make You Angrier #relationships",
+      "fact": "Apologizing too quickly after hurting someone increases their anger because social psychology research shows victims need emotional validation before they can accept remorse.",
+      "video_id": "ZpxfDwLXuYY",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-30T19:37:46",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "story",
+      "title": "Why That Tiny Text Dot Scares You #shorts #psychology",
+      "fact": "Psycholinguistic research shows text messages ending with a period are perceived as significantly less sincere and more hostile because readers rely on punctuation to substitute for missing vocal inflection.",
+      "video_id": "ZZjRyAHsvMo",
       "channel": "Channel 3"
     }
   ]
