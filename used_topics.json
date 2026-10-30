@@ -101,24 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-08T08:18:55",
-      "category": "human body and brain (eyes, heart, hands, sleep)",
-      "format": "shocking_fact",
-      "title": "Kya aapka pet loha gala sakta hai? 😱",
-      "fact": "The human stomach produces hydrochloric acid that is strong enough to dissolve metal, yet a protective mucus lining prevents the stomach from digesting itself.",
-      "video_id": "-ESIH7yxtVY",
-      "channel": "Channel 2"
-    },
-    {
-      "date": "2026-10-08T08:24:16",
-      "category": "history's strangest records and museum objects",
-      "format": "top3",
-      "title": "In 3 Creepy Cheezon Ka Sach! 😱",
-      "fact": "Three creepy historical museum objects: Victorian mourning rings made from dead people's hair, the Devil's Bible allegedly written in one night, and the CPR dummy modeled after a drowned girl's death mask.",
-      "video_id": "3MuChhxHXHg",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-08T09:24:30",
       "category": "extreme weather (lightning, storms, ice, rain)",
       "format": "myth_vs_truth",
@@ -881,6 +863,24 @@
       "fact": "The fundamental attribution error causes people to attribute others' actions to character while attributing their own actions to situational circumstances.",
       "video_id": "az8_-J_BUls",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-29T23:58:41",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "myth_vs_truth",
+      "title": "Why You Think You Never Conform #shorts #facts",
+      "fact": "The third-person effect and illusion of uniqueness cause people to believe social pressure only affects others, while secretly conforming and rewriting their own memories to preserve ego.",
+      "video_id": "L_6plfBdtYU",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-30T00:03:43",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "story",
+      "title": "Why rejection actually makes you cold 🥶 #shorts #psychology",
+      "fact": "When people experience social exclusion, their actual physical skin temperature drops because the brain processes emotional warmth and physical warmth through the same neural region.",
+      "video_id": "olcASYrIUMY",
+      "channel": "Channel 3"
     }
   ]
 }
