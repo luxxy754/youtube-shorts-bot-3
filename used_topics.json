@@ -101,24 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-08T10:55:37",
-      "category": "psychology of first impressions, attraction and body language (only well-established findings)",
-      "format": "myth_vs_truth",
-      "title": "Aise log aapko bina bole pasand karne lagenge 🤫",
-      "fact": "People trust and like strangers faster if they mirror subtle body language or posture within seconds.",
-      "video_id": "V8wU5uzCRKc",
-      "channel": "Channel 1"
-    },
-    {
-      "date": "2026-10-08T10:57:48",
-      "category": "everyday human behaviour: why people do small things in daily life (phone, friends, family, work)",
-      "format": "top3",
-      "title": "बिना सोचे किसी की नक़ल क्यों करते हो? 🤯",
-      "fact": "People automatically mimic the body language of strangers or friends within seconds, a psychological phenomenon called the chameleon effect that builds trust.",
-      "video_id": "LekhwDPHnw8",
-      "channel": "Channel 2"
-    },
-    {
       "date": "2026-10-08T11:00:14",
       "category": "sleep, dreams and tiredness: what they do to mood and behaviour",
       "format": "personal_what_if",
@@ -881,6 +863,24 @@
       "fact": "Psycholinguistic research shows text messages ending with a period are perceived as significantly less sincere and more hostile because readers rely on punctuation to substitute for missing vocal inflection.",
       "video_id": "ZZjRyAHsvMo",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-10-31T18:37:10",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "personal_what_if",
+      "title": "Why Being Clumsy Makes People Like You #Shorts",
+      "fact": "The pratfall effect demonstrates that when an otherwise competent person makes an everyday clumsy mistake, others perceive them as significantly more likable, relatable, and trustworthy.",
+      "video_id": "ZFLo8L9OIFY",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-10-31T18:43:09",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "psychology_effect",
+      "title": "Why You Hate Every Photo Of Yourself #shorts #psychology",
+      "fact": "The mere exposure effect causes people to prefer their mirrored reflection while friends prefer their un-reversed photograph because familiarity dictates aesthetic preference.",
+      "video_id": "pwplP0YKg3s",
+      "channel": "Channel 2"
     }
   ]
 }
