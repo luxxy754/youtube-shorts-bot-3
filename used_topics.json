@@ -101,15 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-08T11:00:14",
-      "category": "sleep, dreams and tiredness: what they do to mood and behaviour",
-      "format": "personal_what_if",
-      "title": "Neend na ho toh sab dushman lagte hain 🤯",
-      "fact": "Sleep deprivation causes the brain to misinterpret neutral human facial expressions as angry or threatening due to hyperactivation of the amygdala.",
-      "video_id": "WSdbdP22TZU",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-08T11:11:41",
       "category": "friendship, relationships, texting, jealousy and loneliness (well-established findings only)",
       "format": "myth_vs_truth",
@@ -881,6 +872,15 @@
       "fact": "The mere exposure effect causes people to prefer their mirrored reflection while friends prefer their un-reversed photograph because familiarity dictates aesthetic preference.",
       "video_id": "pwplP0YKg3s",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-10-31T22:34:37",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "myth_vs_truth",
+      "title": "Why One Voice Can Shatter a Crowd 🤫",
+      "fact": "Solomon Asch's conformity experiments showed that group pressure relies on unanimous consensus; when even one dissenter breaks unanimity, conformity drops dramatically.",
+      "video_id": "qUwVZmOns4M",
+      "channel": "Channel 3"
     }
   ]
 }
