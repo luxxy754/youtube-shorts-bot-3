@@ -101,15 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-08T11:11:41",
-      "category": "friendship, relationships, texting, jealousy and loneliness (well-established findings only)",
-      "format": "myth_vs_truth",
-      "title": "Why your best friends ignore your texts 📱",
-      "fact": "People often delay replying to text messages from their closest friends because of the emotional energy and cognitive pressure required to craft a thoughtful response, leading to reply-procrastination.",
-      "video_id": "ZIZu-_8WIeo",
-      "channel": "Channel 1"
-    },
-    {
       "date": "2026-10-08T11:13:34",
       "category": "emotions, mood, stress and how people react to them",
       "format": "psychology_fact",
@@ -881,6 +872,15 @@
       "fact": "Solomon Asch's conformity experiments showed that group pressure relies on unanimous consensus; when even one dissenter breaks unanimity, conformity drops dramatically.",
       "video_id": "qUwVZmOns4M",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-01T19:03:43",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "story",
+      "title": "Why People Look Away When Talking #Shorts",
+      "fact": "Gaze aversion during speech planning occurs because processing human faces demands intense cognitive bandwidth, forcing the brain to look away to retrieve complex thoughts.",
+      "video_id": "c49oFnnELO0",
+      "channel": "Channel 1"
     }
   ]
 }
