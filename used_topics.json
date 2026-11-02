@@ -101,24 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-08T11:13:34",
-      "category": "emotions, mood, stress and how people react to them",
-      "format": "psychology_fact",
-      "title": "Why you think everyone is watching you 😳",
-      "fact": "People overestimate how much attention others pay to their appearance or mistakes, a psychological bias known as the spotlight effect.",
-      "video_id": "nql76oIa49I",
-      "channel": "Channel 2"
-    },
-    {
-      "date": "2026-10-08T11:15:30",
-      "category": "childhood, learning and curiosity: how people learn and why praise/habits stick",
-      "format": "top3",
-      "title": "Why smart kids hate hard things 🧠",
-      "fact": "People learn faster and retain habits longer when praise targets their internal effort rather than fixed traits.",
-      "video_id": "6MHbjRLLKB4",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-09T02:43:04",
       "category": "shopping, money and attention psychology: why we buy, scroll and get hooked",
       "format": "psychology_effect",
@@ -881,6 +863,24 @@
       "fact": "Gaze aversion during speech planning occurs because processing human faces demands intense cognitive bandwidth, forcing the brain to look away to retrieve complex thoughts.",
       "video_id": "c49oFnnELO0",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-02T02:27:50",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "personal_what_if",
+      "title": "Why You Smile When Someone Insults You 😬",
+      "fact": "Nervous smiling during insults is an evolutionary appeasement display, derived from the silent bared-teeth fear grimace, designed to defuse social aggression.",
+      "video_id": "CCwAm8bpccU",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-02T02:32:28",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "psychology_effect",
+      "title": "The Word That Tricks Your Brain #shorts #psychology",
+      "fact": "The because effect demonstrates that using the word 'because' increases compliance with small requests, even when followed by a redundant or weak reason.",
+      "video_id": "LpDCesym-dI",
+      "channel": "Channel 3"
     }
   ]
 }
