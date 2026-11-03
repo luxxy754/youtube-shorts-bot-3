@@ -101,22 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-09T02:47:38",
-      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
-      "format": "psychology_fact",
-      "title": "Why you secretly copy strangers 👥",
-      "fact": "People adopt the emotional tone and vocabulary of strangers they interact with briefly, known as linguistic and emotional contagion in social groups.",
-      "video_id": "FUtq1HTQA-k",
-      "channel": "Channel 3"
-    },
-    {
-      "date": "2026-10-09T17:23:14",
-      "category": "memory: why we forget, false memories, why we remember some things forever",
-      "format": "top3",
-      "title": "Why your sharpest memories keep changing 🧠",
-      "fact": "Human memory is reconstructive rather than reproductive; memory reconsolidation alters details every time a memory is retrieved, destination memory causes people to forget who they told stories to, and the Google effect weakens recall of easily searchable facts."
-    },
-    {
       "date": "2026-10-09T17:26:08",
       "category": "everyday human behaviour: why people do small things in daily life (phone, friends, family, work)",
       "format": "psychology_effect",
@@ -880,6 +864,24 @@
       "title": "Why Your Voice Drops Around a Crush #shorts #psychology",
       "fact": "Both men and women unconsciously lower their vocal pitch when speaking to someone they find physically attractive.",
       "video_id": "X2807iwAedo",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-03T20:35:38",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "personal_what_if",
+      "title": "Why You Agree to Plans You Hate #shorts #mindset",
+      "fact": "The Abilene Paradox and pluralistic ignorance occur when individual group members privately reject an idea but publicly accept it because they incorrectly assume everyone else supports it.",
+      "video_id": "toxm2eM1ak0",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-03T20:47:52",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "myth_vs_truth",
+      "title": "Why Loneliness Lies To You #shorts #psychology",
+      "fact": "Loneliness activates a neural threat-detection state that causes individuals to misinterpret neutral social interactions and texting delays as personal rejection.",
+      "video_id": "vAup4-ks4iI",
       "channel": "Channel 2"
     }
   ]
