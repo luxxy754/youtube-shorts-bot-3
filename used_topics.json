@@ -101,24 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-09T02:43:04",
-      "category": "shopping, money and attention psychology: why we buy, scroll and get hooked",
-      "format": "psychology_effect",
-      "title": "How Cafes Trick You Into Spending More ☕",
-      "fact": "The decoy effect causes consumers to change their preference between two options when presented with a third, asymmetrical option.",
-      "video_id": "KejrXp7tDDo",
-      "channel": "Channel 1"
-    },
-    {
-      "date": "2026-10-09T02:45:18",
-      "category": "decision making, cognitive biases and why smart people make silly choices",
-      "format": "personal_what_if",
-      "title": "Your brain invents your own choices 🧠",
-      "fact": "People falsely defend choices they never made due to choice blindness, showing the brain invents reasons after the fact.",
-      "video_id": "vHyOdERATMs",
-      "channel": "Channel 2"
-    },
-    {
       "date": "2026-10-09T02:47:38",
       "category": "social psychology: crowds, conformity, persuasion, why we copy others",
       "format": "psychology_fact",
@@ -881,6 +863,24 @@
       "fact": "The because effect demonstrates that using the word 'because' increases compliance with small requests, even when followed by a redundant or weak reason.",
       "video_id": "LpDCesym-dI",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-02T22:53:51",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "myth_vs_truth",
+      "title": "Why Groups Secretly Make You Lazy #shorts #psychology",
+      "fact": "Social loafing in social psychology demonstrates that individuals unconsciously exert less effort when working in a group compared to working alone due to a diffusion of personal responsibility.",
+      "video_id": "0tfBwjiN7kQ",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-02T23:04:04",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "story",
+      "title": "Why Your Voice Drops Around a Crush #shorts #psychology",
+      "fact": "Both men and women unconsciously lower their vocal pitch when speaking to someone they find physically attractive.",
+      "video_id": "X2807iwAedo",
+      "channel": "Channel 2"
     }
   ]
 }
