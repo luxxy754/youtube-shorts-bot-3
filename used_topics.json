@@ -101,15 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-09T17:26:08",
-      "category": "everyday human behaviour: why people do small things in daily life (phone, friends, family, work)",
-      "format": "psychology_effect",
-      "title": "Why asking for help makes friends 🧠",
-      "fact": "The Ben Franklin effect shows that performing a favor for someone makes us like them more because our brain seeks cognitive consistency.",
-      "video_id": "K1CHOlQthwI",
-      "channel": "Channel 2"
-    },
-    {
       "date": "2026-10-09T17:28:58",
       "category": "focus and attention: why the mind wanders, multitasking, distraction",
       "format": "myth_vs_truth",
@@ -883,6 +874,15 @@
       "fact": "Loneliness activates a neural threat-detection state that causes individuals to misinterpret neutral social interactions and texting delays as personal rejection.",
       "video_id": "vAup4-ks4iI",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-04T01:19:19",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "story",
+      "title": "Why You Avoid Checking Your Money #money",
+      "fact": "The ostrich effect is a cognitive bias where people actively avoid acquiring risk-related information, such as checking bank balances or bills during uncertain financial periods, to protect themselves from anxiety.",
+      "video_id": "9zOxBLjHvd0",
+      "channel": "Channel 3"
     }
   ]
 }
