@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-10T16:16:13",
-      "category": "psychology of habits, procrastination, motivation and willpower",
-      "format": "personal_what_if",
-      "title": "The real reason you avoid tasks 🧠",
-      "fact": "Procrastination is an emotional regulation strategy, not a failure of time management."
-    },
-    {
-      "date": "2026-10-10T16:20:54",
-      "category": "childhood, learning and curiosity: how people learn and why praise/habits stick",
-      "format": "top3",
-      "title": "Why you secretly copy strangers 🧠",
-      "fact": "People internalize observed habits and rules faster through unconscious social modeling than through direct instruction."
-    },
-    {
       "date": "2026-10-10T16:24:56",
       "category": "shopping, money and attention psychology: why we buy, scroll and get hooked",
       "format": "psychology_effect",
@@ -884,6 +870,24 @@
       "title": "They copy you to gain trust #relationships",
       "fact": "When someone copies your posture during a chat, your brain's mirror system recognizes it as a micro-agreement, instantly making you trust them more without realizing why.",
       "video_id": "lEJikCEhRoQ",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-06T20:51:27",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "story",
+      "title": "Why Hurt Makes You Watch Strangers 👀",
+      "fact": "When people experience social rejection or emotional hurt, their social monitoring system activates, increasing their focus on scanning crowds for safe, warm, and friendly signals from others.",
+      "video_id": "GX6SLUTpM0I",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-06T21:03:55",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "myth_vs_truth",
+      "title": "Why Playing Cold Destroys Attraction 💔",
+      "fact": "Social psychology demonstrates that reciprocal liking drives interpersonal attraction, whereas playing hard to get or acting aloof primarily induces fear of rejection and causes potential partners to withdraw.",
+      "video_id": "6M0cUdliCwQ",
       "channel": "Channel 3"
     }
   ]
