@@ -101,15 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-10T02:07:10",
-      "category": "psychology of first impressions, attraction and body language (only well-established findings)",
-      "format": "psychology_effect",
-      "title": "One look changes how people trust you forever 👁️",
-      "fact": "People judge competence and warmth from an initial facial glance in milliseconds, a thin-slicing effect that permanently skews all future trust.",
-      "video_id": "BBB6a-3NKP8",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-10T16:16:13",
       "category": "psychology of habits, procrastination, motivation and willpower",
       "format": "personal_what_if",
@@ -885,6 +876,15 @@
       "fact": "Experiencing unfair treatment triggers an emotional deficit that causes people to subconsciously violate unrelated minor rules to restore psychological equilibrium.",
       "video_id": "av_W98osKcw",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-06T01:31:07",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "personal_what_if",
+      "title": "They copy you to gain trust #relationships",
+      "fact": "When someone copies your posture during a chat, your brain's mirror system recognizes it as a micro-agreement, instantly making you trust them more without realizing why.",
+      "video_id": "lEJikCEhRoQ",
+      "channel": "Channel 3"
     }
   ]
 }
