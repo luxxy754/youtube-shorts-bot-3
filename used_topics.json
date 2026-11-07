@@ -101,29 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-11T01:48:02",
-      "category": "sleep, dreams and tiredness: what they do to mood and behaviour",
-      "format": "myth_vs_truth",
-      "title": "Why one bad night turns you into a different person 🧠",
-      "fact": "Sleep deprivation impairs emotional regulation by increasing amygdala activity, causing everyday minor stressors to trigger extreme emotional reactions."
-    },
-    {
-      "date": "2026-10-11T01:51:57",
-      "category": "everyday human behaviour: why people do small things in daily life (phone, friends, family, work)",
-      "format": "top3",
-      "title": "Why you secretly copy your friends 👥",
-      "fact": "People automatically mimic the posture and physical habits of friends they spend time with through unconscious behavioral contagion."
-    },
-    {
-      "date": "2026-10-11T01:56:15",
-      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
-      "format": "psychology_effect",
-      "title": "Why you accidentally steal other people's moods 🎭",
-      "fact": "People unconsciously adopt the emotional expressions, vocal tones, and physical postures of people they interact with, known as the chameleon effect and emotional contagion.",
-      "video_id": "uCdwRpj9c_s",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-11T16:41:29",
       "category": "focus and attention: why the mind wanders, multitasking, distraction",
       "format": "personal_what_if",
@@ -889,6 +866,33 @@
       "fact": "The next-in-line effect causes people to immediately forget a new acquaintance's name because working memory is entirely consumed by rehearsing their own upcoming introduction.",
       "video_id": "D3dS2S2b7oc",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-07T18:44:32",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "story",
+      "title": "Why You Clean Small Things When Hurt 🧹",
+      "fact": "During sudden emotional distress or social friction, humans engage in displacement behaviors like micro-cleaning or rearranging nearby objects to restore physical control and reduce physiological stress.",
+      "video_id": "5kYLcdHQLzQ",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-07T18:50:05",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "psychology_effect",
+      "title": "Why You Make Mistakes When People Watch #relationships",
+      "fact": "The audience effect demonstrates that social presence increases physical alertness, which improves simple, well-learned tasks but impairs complex or unpracticed performance.",
+      "video_id": "Lrkoise34D0",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-07T18:56:32",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "personal_what_if",
+      "title": "Why Half Your Friendships Are One-Sided #relationships",
+      "fact": "Data on friendship reciprocity reveals that while people assume around ninety-five percent of their friendships are mutual, social network analysis proves only about fifty percent are actually reciprocal.",
+      "video_id": "mNBiAoIKvBg",
+      "channel": "Channel 3"
     }
   ]
 }
