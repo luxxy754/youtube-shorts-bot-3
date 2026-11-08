@@ -1,1 +1,1 @@
-{"bag": ["wipeleft", "distance", "scanline", "inkdrip", "hlslice", "circleopen", "zoomblur", "horzopen", "diagbr", "circleclose", "slidedown", "vuslice", "spin", "smoothup", "filmburn", "smoothright", "wiperight", "diagtr", "hrslice", "vdslice", "radial", "datamosh", "vertclose", "diagtl"], "total_modes": 50}
+{"bag": ["filmburn", "smoothright", "wiperight", "diagtr", "hrslice", "vdslice", "radial", "datamosh", "vertclose", "diagtl"], "total_modes": 50}

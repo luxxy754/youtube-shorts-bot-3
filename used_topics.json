@@ -101,29 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-11T16:41:29",
-      "category": "focus and attention: why the mind wanders, multitasking, distraction",
-      "format": "personal_what_if",
-      "title": "Why Quick Phone Checks Ruin Your Focus 📱",
-      "fact": "Checking notifications creates attentional residue, leaving cognitive energy stuck on the interruption and causing mind wandering during subsequent tasks."
-    },
-    {
-      "date": "2026-10-11T16:48:58",
-      "category": "emotions, mood, stress and how people react to them",
-      "format": "myth_vs_truth",
-      "title": "Why Forcing Calm Increases Your Stress 🧠",
-      "fact": "Suppressing anxiety or forcing calm increases heart rate and cortisol arousal, while naming emotions out loud (affect labeling) dampens amygdala reactivity and lowers stress."
-    },
-    {
-      "date": "2026-10-11T16:55:22",
-      "category": "psychology of first impressions, attraction and body language (only well-established findings)",
-      "format": "top3",
-      "title": "3 Hidden Body Language Cues That Reveal Attraction 👀",
-      "fact": "Unconscious body language reveals genuine attraction and intent through foot orientation, pupil expansion during emotional arousal, and increased interpersonal warmth following minor blunders, known as the pratfall effect.",
-      "video_id": "Dwb8rrMhGLU",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-12T02:15:20",
       "category": "decision making, cognitive biases and why smart people make silly choices",
       "format": "psychology_fact",
@@ -892,6 +869,33 @@
       "title": "Why Half Your Friendships Are One-Sided #relationships",
       "fact": "Data on friendship reciprocity reveals that while people assume around ninety-five percent of their friendships are mutual, social network analysis proves only about fifty percent are actually reciprocal.",
       "video_id": "mNBiAoIKvBg",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-08T22:55:59",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "story",
+      "title": "Why You Copy Strangers 👀 #shorts #facts",
+      "fact": "Social gaze contagion triggers automatic herd behavior, causing eighty percent of passersby to look upward when five strangers point at an empty spot.",
+      "video_id": "tKE3Fyb13qA",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-08T23:02:26",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "psychology_effect",
+      "title": "Why Neutral Texts Hurt #shorts #psychology",
+      "fact": "Hostile attribution bias causes individuals to perceive neutral or ambiguous social behaviors as intentionally hostile or malicious.",
+      "video_id": "1sT6ILYNwdY",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-08T23:09:02",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "personal_what_if",
+      "title": "Why You Copy Strangers Footsteps 👟 #shorts #mindset",
+      "fact": "Unconscious gait synchronization occurs when individuals walk near strangers, automatically adjusting their stride tempo to mirror others, which conserves mental energy and increases mutual rapport.",
+      "video_id": "uzMuUGmn9DQ",
       "channel": "Channel 3"
     }
   ]
