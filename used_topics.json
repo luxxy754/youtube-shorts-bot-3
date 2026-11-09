@@ -101,20 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-12T02:15:20",
-      "category": "decision making, cognitive biases and why smart people make silly choices",
-      "format": "psychology_fact",
-      "title": "One cup instantly makes strangers trust you ☕",
-      "fact": "Holding a hot drink unconsciously triggers feelings of interpersonal warmth and trust."
-    },
-    {
-      "date": "2026-10-12T02:19:15",
-      "category": "memory: why we forget, false memories, why we remember some things forever",
-      "format": "psychology_effect",
-      "title": "Your brain rewrites your entire past 🧠",
-      "fact": "Memory reconsolidation research shows that every time we recall a memory, our brain alters it based on current information."
-    },
-    {
       "date": "2026-10-12T02:22:39",
       "category": "friendship, relationships, texting, jealousy and loneliness (well-established findings only)",
       "format": "myth_vs_truth",
@@ -896,6 +882,24 @@
       "title": "Why You Copy Strangers Footsteps 👟 #shorts #mindset",
       "fact": "Unconscious gait synchronization occurs when individuals walk near strangers, automatically adjusting their stride tempo to mirror others, which conserves mental energy and increases mutual rapport.",
       "video_id": "uzMuUGmn9DQ",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-09T23:36:22",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "myth_vs_truth",
+      "title": "Why Getting Even Actually Hurts You #Shorts",
+      "fact": "Social psychology experiments demonstrate that seeking revenge keeps the emotional wound fresh by prolonging rumination, whereas choosing not to retaliate allows natural emotional recovery and closure.",
+      "video_id": "mba4mW1glQA",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-09T23:40:14",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "psychology_effect",
+      "title": "Why People Like You More Than You Think 🧠",
+      "fact": "The liking gap causes people to systematically underestimate how much new acquaintances and friends enjoyed their company during a conversation.",
+      "video_id": "zXixbt_y9cw",
       "channel": "Channel 3"
     }
   ]
