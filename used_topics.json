@@ -101,29 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-12T02:22:39",
-      "category": "friendship, relationships, texting, jealousy and loneliness (well-established findings only)",
-      "format": "myth_vs_truth",
-      "title": "Why you secretly copy strangers 🪞",
-      "fact": "People unconsciously mirror the body language and posture of others to build rapport and connection.",
-      "video_id": "hOtWZBHR2FU",
-      "channel": "Channel 3"
-    },
-    {
-      "date": "2026-10-12T20:15:27",
-      "category": "sleep, dreams and tiredness: what they do to mood and behaviour",
-      "format": "psychology_fact",
-      "title": "Why You Never Realize You're Exhausted 🥱",
-      "fact": "Chronic sleep restriction impairs self-awareness, causing subjective sleepiness to plateau while cognitive and emotional deficits continue to escalate."
-    },
-    {
-      "date": "2026-10-12T20:21:33",
-      "category": "everyday human behaviour: why people do small things in daily life (phone, friends, family, work)",
-      "format": "psychology_effect",
-      "title": "Why You Blank Out Entering Rooms 🚪",
-      "fact": "Passing through a doorway creates an event boundary in the brain, prompting working memory to reset and purge recent thoughts to prepare for the new environment."
-    },
-    {
       "date": "2026-10-12T20:27:24",
       "category": "social psychology: crowds, conformity, persuasion, why we copy others",
       "format": "myth_vs_truth",
@@ -900,6 +877,33 @@
       "title": "Why People Like You More Than You Think 🧠",
       "fact": "The liking gap causes people to systematically underestimate how much new acquaintances and friends enjoyed their company during a conversation.",
       "video_id": "zXixbt_y9cw",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-10T20:55:00",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "personal_what_if",
+      "title": "Why Your Best Friend's Success Secretly Hurts 🤫",
+      "fact": "Self-Evaluation Maintenance Theory shows that when a close friend succeeds in a domain highly central to our own identity, our brain experiences a threat to self-worth, triggering feelings of envy rather than pride.",
+      "video_id": "JtDxQcHfa4s",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-10T21:00:25",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "story",
+      "title": "The Body Gesture That Kills Attraction #shorts #psychology",
+      "fact": "Expansive, open body postures increase perceived social warmth and attractiveness during initial interactions compared to closed, defensive postures.",
+      "video_id": "znVPPkYD9Z8",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-10T21:05:33",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "psychology_effect",
+      "title": "Why Asking Favors Makes People Like You",
+      "fact": "Asking someone for a small favor causes their brain to rationalize that they like you, increasing interpersonal warmth and rapport.",
+      "video_id": "NRTrIws6-Rk",
       "channel": "Channel 3"
     }
   ]
