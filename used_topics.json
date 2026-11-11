@@ -101,29 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-12T20:27:24",
-      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
-      "format": "myth_vs_truth",
-      "title": "Why Crowds Freeze During Emergencies 🚨",
-      "fact": "Pluralistic ignorance in crowds causes people to falsely assume an emergency is harmless because everyone suppresses their outward panic to avoid embarrassment.",
-      "video_id": "bK79xmxvvO8",
-      "channel": "Channel 3"
-    },
-    {
-      "date": "2026-10-13T03:29:16",
-      "category": "psychology of habits, procrastination, motivation and willpower",
-      "format": "psychology_fact",
-      "title": "The real reason you avoid work 🛑",
-      "fact": "Procrastination is an emotional regulation failure, not a time management issue, used to avoid negative feelings."
-    },
-    {
-      "date": "2026-10-13T03:33:09",
-      "category": "childhood, learning and curiosity: how people learn and why praise/habits stick",
-      "format": "top3",
-      "title": "Why you copy people without noticing 🧠",
-      "fact": "Children learn rules and habits much faster through unconscious social modeling than direct instruction."
-    },
-    {
       "date": "2026-10-13T03:37:39",
       "category": "psychology of first impressions, attraction and body language (only well-established findings)",
       "format": "myth_vs_truth",
@@ -904,6 +881,33 @@
       "title": "Why Asking Favors Makes People Like You",
       "fact": "Asking someone for a small favor causes their brain to rationalize that they like you, increasing interpersonal warmth and rapport.",
       "video_id": "NRTrIws6-Rk",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-11T21:36:15",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "myth_vs_truth",
+      "title": "Why You Mirror Friends Not Bosses 👥 #shorts #facts",
+      "fact": "Social psychology reveals that people conform by mimicking similar peers around them rather than being persuaded by loud or dominant authority figures.",
+      "video_id": "6JL_v-H21ZE",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-11T21:55:00",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "personal_what_if",
+      "title": "Why Venting to Friends Backfires #shorts #facts",
+      "fact": "Co-rumination in friendships creates feelings of closeness but reinforces negative emotional loops and increases stress hormones instead of relieving anxiety.",
+      "video_id": "EcE7n7eN6w0",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-11T22:01:41",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "story",
+      "title": "You secretly love people with your initials #relationships",
+      "fact": "The name-letter effect shows that people unconsciously prefer items, places, and friends whose names share initials with their own, driven by implicit egotism.",
+      "video_id": "UjxbcE9urQc",
       "channel": "Channel 3"
     }
   ]
