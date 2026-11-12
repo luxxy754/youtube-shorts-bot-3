@@ -101,24 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-13T03:37:39",
-      "category": "psychology of first impressions, attraction and body language (only well-established findings)",
-      "format": "myth_vs_truth",
-      "title": "Why strangers judge your shoes first 👟",
-      "fact": "People judge social status and competence within milliseconds from clothing brand cues, a status signaling bias.",
-      "video_id": "d9q-JFpmBoE",
-      "channel": "Channel 3"
-    },
-    {
-      "date": "2026-10-13T09:15:25",
-      "category": "emotions, mood, stress and how people react to them",
-      "format": "psychology_effect",
-      "title": "Why Dread Feels Worse Than Reality 🧠",
-      "fact": "Anticipating negative events often causes more physiological and emotional distress than the actual events themselves.",
-      "video_id": "9hiDQLEaQRo",
-      "channel": "Channel 1"
-    },
-    {
       "date": "2026-10-13T09:20:10",
       "category": "memory: why we forget, false memories, why we remember some things forever",
       "format": "top3",
@@ -908,6 +890,24 @@
       "title": "You secretly love people with your initials #relationships",
       "fact": "The name-letter effect shows that people unconsciously prefer items, places, and friends whose names share initials with their own, driven by implicit egotism.",
       "video_id": "UjxbcE9urQc",
+      "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-12T21:30:16",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "myth_vs_truth",
+      "title": "Why Venting Anger Backfires 🤬 #shorts #psychology",
+      "fact": "Venting anger through aggressive outbursts keeps physiological arousal high and prolongs stress rather than releasing emotional hurt.",
+      "video_id": "IxUj7RouR2I",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-12T21:37:15",
+      "category": "psychology of first impressions, attraction and body language (well-established findings)",
+      "format": "psychology_effect",
+      "title": "Why Talking Trash Backfires On You #relationships",
+      "fact": "Spontaneous trait transference causes listeners to unintentionally associate the negative or positive traits you describe in others with your own character.",
+      "video_id": "WQWAZfUYTdw",
       "channel": "Channel 3"
     }
   ]
