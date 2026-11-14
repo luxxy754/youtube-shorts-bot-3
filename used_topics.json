@@ -101,33 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-13T12:39:35",
-      "category": "shopping, money and attention psychology: why we buy, scroll and get hooked",
-      "format": "top3",
-      "title": "Why you never switch brands #money",
-      "fact": "Familiarity breeds preference through the mere exposure effect, which companies exploit to make us buy trusted brands.",
-      "video_id": "t8uqiEikPe4",
-      "channel": "Channel 2"
-    },
-    {
-      "date": "2026-10-13T12:44:01",
-      "category": "psychology of habits, procrastination and willpower",
-      "format": "question_first",
-      "title": "Why do you always procrastinate? #shorts #psychology",
-      "fact": "Implementation intentions, or specific if-then plans, reduce procrastination by outsourcing decision-making to environmental cues rather than relying on willpower.",
-      "video_id": "O9gPK4MZhC4",
-      "channel": "Channel 3"
-    },
-    {
-      "date": "2026-10-13T16:58:10",
-      "category": "why free trials, discounts and 'limited time' actually work on the brain",
-      "format": "psychology_fact",
-      "title": "Why Free Trials Break Your Brain",
-      "fact": "The zero-price effect causes the human brain to overvalue free items, turning zero cost into an emotional trigger that bypasses rational cost-benefit analysis.",
-      "video_id": "PXAdztwYsP0",
-      "channel": "Channel 2"
-    },
-    {
       "date": "2026-10-13T21:50:56",
       "category": "social psychology: crowds, conformity, persuasion, why we copy others",
       "format": "psychology_effect",
@@ -909,6 +882,33 @@
       "fact": "Social psychology shows people withhold bad news primarily to protect themselves from psychological discomfort, not to protect the recipient's feelings.",
       "video_id": "X5sp_IHSvcg",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-14T23:09:01",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "personal_what_if",
+      "title": "Why Delaying A Text Creates Instant Dread 📱",
+      "fact": "Delaying a text reply transforms an easy task into a stressor because the brain treats unresolved social obligations as threats, progressively overestimating how negatively the recipient will react.",
+      "video_id": "TQT2ZolJcqg",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-14T23:20:24",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "story",
+      "title": "Why You Blindly Step Into Traffic #habits",
+      "fact": "Pedestrian herd behavior causes people to blindly follow others into intersections because the human brain unconsciously delegates safety assessments to whoever moves first.",
+      "video_id": "GREvrJHX8XY",
+      "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-14T23:45:40",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "psychology_effect",
+      "title": "Why Saying No Traps Your Brain #shorts #facts",
+      "fact": "The door-in-the-face technique is a verified psychological phenomenon where rejecting an extreme initial request significantly increases compliance with a subsequent smaller request due to reciprocal concession.",
+      "video_id": "21J-51X1bB8",
+      "channel": "Channel 3"
     }
   ]
 }
