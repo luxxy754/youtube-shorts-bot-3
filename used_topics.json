@@ -101,15 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-14T01:08:52",
-      "category": "sleep, dreams and tiredness: what they do to mood and behaviour",
-      "format": "question_first",
-      "title": "Why does a bad night make you furious? #Shorts",
-      "fact": "Sleep deprivation increases amygdala reactivity and reduces prefrontal functional connectivity, causing neutral faces to be perceived as threatening.",
-      "video_id": "PdFzqEaVnPY",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-14T09:18:27",
       "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
       "format": "personal_what_if",
@@ -909,6 +900,15 @@
       "fact": "During emotional distress, the nervous system triggers a fight-or-flight response that expands the glottis to take in more oxygen, but when a person tries to swallow to suppress crying, the opposing throat muscles fight each other and produce the globus sensation.",
       "video_id": "Amgn23nOhe4",
       "channel": "Channel 2"
+    },
+    {
+      "date": "2026-11-16T00:01:26",
+      "category": "friendship, texting, jealousy and loneliness (well-established findings only)",
+      "format": "myth_vs_truth",
+      "title": "The Truth Behind Friend Jealousy 👀 #relationships",
+      "fact": "Evolutionary psychology shows friendship jealousy is a protective cognitive mechanism designed to defend vital social alliances from third-party replacement, but suppressing it leads to damaging social withdrawal.",
+      "video_id": "Eym49uWR0LQ",
+      "channel": "Channel 1"
     }
   ]
 }
