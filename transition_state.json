@@ -1,1 +1,1 @@
-{"bag": ["vdslice", "hlslice", "pixelize", "wipedown", "fade", "slideright", "shake", "whipzoom_out", "diagbr", "spinzoom", "wipeleft", "vuslice", "pixelsort", "scanline", "smoothright", "inkdrip", "circleopen", "vertopen", "horzclose", "rgbsplit", "diagbl", "vertclose", "wiperight", "radial"], "total_modes": 50}
+{"bag": ["pixelsort", "scanline", "smoothright", "inkdrip", "circleopen", "vertopen", "horzclose", "rgbsplit", "diagbl", "vertclose", "wiperight", "radial"], "total_modes": 50}
