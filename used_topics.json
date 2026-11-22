@@ -101,24 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-15T08:11:19",
-      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
-      "format": "psychology_effect",
-      "title": "Why Your Minor Blunders Make You Likable #relationships",
-      "fact": "The pratfall effect shows that capable people become more likable after making a minor blunder, because perfection feels intimidating while small flaws signal warmth and approachability.",
-      "video_id": "7tMTsMt0w1k",
-      "channel": "Channel 2"
-    },
-    {
-      "date": "2026-10-15T08:17:00",
-      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
-      "format": "myth_vs_truth",
-      "title": "Why you pretend to agree with wrong people 😳",
-      "fact": "People routinely abandon their own obvious correct observations and conform to an incorrect majority to avoid social conflict.",
-      "video_id": "AQc64OuaQhY",
-      "channel": "Channel 3"
-    },
-    {
       "date": "2026-10-16T18:02:04",
       "category": "emotions, mood and how people react when someone hurts them",
       "format": "story",
@@ -909,6 +891,22 @@
       "fact": "Gaze aversion during demanding cognitive tasks occurs because processing a live face competes for and consumes the same visual working memory resources needed to retrieve verbal information and formulate responses.",
       "video_id": "GwptNDJF_ag",
       "channel": "Channel 3"
+    },
+    {
+      "date": "2026-11-22T01:14:26",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "story",
+      "title": "Why You Fake Text When It Gets Awkward 📱 #Shorts",
+      "fact": "People unlock or tap their smartphones during socially uncomfortable moments as an instinctive pacifying behavior and social shield to protect against perceived social judgment.",
+      "video_id": "4qv6vfd9v1w",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-22T01:20:10",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "psychology_effect",
+      "title": "Why You Go Numb When Hurt #shorts #psychology",
+      "fact": "Experiencing acute social rejection or sudden emotional hurt triggers the brain's opioid system to induce emotional analgesia, temporarily numbing psychological pain to prevent mental shock."
     }
   ]
 }
