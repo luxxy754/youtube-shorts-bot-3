@@ -1,1 +1,1 @@
-{"bag": ["pixelsort", "scanline", "smoothright", "inkdrip", "circleopen", "vertopen", "horzclose", "rgbsplit", "diagbl", "vertclose", "wiperight", "radial"], "total_modes": 50}
+{"bag": ["horzclose", "rgbsplit", "diagbl", "vertclose", "wiperight", "radial"], "total_modes": 50}
