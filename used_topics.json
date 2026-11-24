@@ -101,33 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-18T00:59:05",
-      "category": "psychology of first impressions, attraction and body language (well-established findings)",
-      "format": "story",
-      "title": "Why A Tilted Neck Instantly Pulls People In",
-      "fact": "Tilting the head exposes the carotid artery and vulnerable neck, an evolutionary signal of safety and non-threat that triggers subconscious trust and approachability.",
-      "video_id": "F8XwYvOdNIU",
-      "channel": "Channel 2"
-    },
-    {
-      "date": "2026-10-18T17:20:32",
-      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
-      "format": "psychology_effect",
-      "title": "Nobody Saw Your Flaw #shorts #psychology",
-      "fact": "The spotlight effect is a well-established cognitive bias where individuals systematically overestimate the extent to which other people notice their appearance, blunders, and awkward social behavior.",
-      "video_id": "fe04w2bP16s",
-      "channel": "Channel 3"
-    },
-    {
-      "date": "2026-10-18T20:37:14",
-      "category": "emotions, mood and how people react when someone hurts them",
-      "format": "personal_what_if",
-      "title": "Why You Go Blank When Hurt 😶 #shorts #psychology",
-      "fact": "When sudden interpersonal hurt overwhelms coping capacity, the nervous system activates an involuntary hypoarousal freeze state, muting all emotional responses to protect against psychological collapse.",
-      "video_id": "FDAlGW-FZu0",
-      "channel": "Channel 1"
-    },
-    {
       "date": "2026-10-18T23:06:02",
       "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
       "format": "myth_vs_truth",
@@ -903,6 +876,31 @@
       "format": "psychology_effect",
       "title": "Why Nobody Notices Your Secret Panic 🤫 #Shorts",
       "fact": "The illusion of transparency causes individuals to systematically overestimate how much their internal emotional states and anxiety are visible to observers."
+    },
+    {
+      "date": "2026-11-24T01:41:07",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "myth_vs_truth",
+      "title": "Why You Blindly Copy Strangers #Shorts",
+      "fact": "Informational social influence causes people to copy crowd behavior in ambiguous or crisis situations because the brain assumes others have vital safety information.",
+      "video_id": "NmT8pPxpI-w",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-24T01:47:40",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "personal_what_if",
+      "title": "Why You Smile When Yelled At #shorts #facts",
+      "fact": "Nervous smiling during conflict is an involuntary evolutionary fear-grin appeasement display designed to signal submission and de-escalate social aggression."
+    },
+    {
+      "date": "2026-11-24T01:55:08",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "psychology_effect",
+      "title": "Why You Suddenly Hate Your Friends 🛡️ #shorts #facts",
+      "fact": "When people feel emotionally threatened or hurt by someone close, their mind automatically devalues that person to shield self-esteem.",
+      "video_id": "quiEYoKSeK0",
+      "channel": "Channel 3"
     }
   ]
 }
