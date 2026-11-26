@@ -1,1 +1,1 @@
-{"bag": ["hlslice", "smoothleft", "horzopen", "rgbsplit", "filmburn", "horzclose", "smoothright", "zoomblur", "vuslice", "punchzoom", "vdslice", "slideleft", "vertclose", "pixelize", "wiperight", "flash_color", "flash_white", "whipzoom_in", "wipeleft", "lightleak"], "total_modes": 50}
+{"bag": ["wiperight", "flash_color", "flash_white", "whipzoom_in", "wipeleft", "lightleak"], "total_modes": 50}

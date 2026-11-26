@@ -101,33 +101,6 @@
   },
   "_recent": [
     {
-      "date": "2026-10-20T18:30:41",
-      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
-      "format": "story",
-      "title": "Why extra gifts secretly ruin your present",
-      "fact": "The presenter's paradox demonstrates that adding an inexpensive bonus item to an expensive gift lowers its overall perceived value because the human mind averages the bundle rather than summing it up.",
-      "video_id": "Jd0GA5EJK_Y",
-      "channel": "Channel 2"
-    },
-    {
-      "date": "2026-10-20T18:37:39",
-      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
-      "format": "personal_what_if",
-      "title": "Why You Get Sleepy Around Someone You Love #Shorts",
-      "fact": "Social baseline theory shows that being around a trusted loved one signals complete safety, prompting the brain to drop defensive vigilance and releasing suppressed fatigue as sudden drowsiness.",
-      "video_id": "eAygIAefh0g",
-      "channel": "Channel 3"
-    },
-    {
-      "date": "2026-10-21T01:34:11",
-      "category": "emotions, mood and how people react when someone hurts them",
-      "format": "myth_vs_truth",
-      "title": "Why Harsh Words Replay In Your Head #shorts #psychology",
-      "fact": "Replaying unfair insults or harsh words is not self-punishment; evolutionary psychology shows the brain treats social rejection as a threat to survival and rehearses the event to recognize future danger.",
-      "video_id": "bJCHa_5Dt78",
-      "channel": "Channel 1"
-    },
-    {
       "date": "2026-10-21T18:36:59",
       "category": "psychology of first impressions, attraction and body language (well-established findings)",
       "format": "story",
@@ -899,6 +872,31 @@
       "fact": "Lonely individuals are hyper-vigilant at detecting social cues, which leads to cognitive exhaustion and social withdrawal rather than a lack of social ability.",
       "video_id": "4a-x9SHYOy0",
       "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-26T23:19:40",
+      "category": "everyday human behaviour: why people do small things with family, friends and co-workers",
+      "format": "story",
+      "title": "Why You Whisper Back Secrets 🤫 #shorts #facts",
+      "fact": "Vocal pitch and volume mirroring occurs automatically during conversation as a subconscious mechanism to reduce tension and signal mutual safety.",
+      "video_id": "f-nBba89Hbw",
+      "channel": "Channel 1"
+    },
+    {
+      "date": "2026-11-26T23:35:58",
+      "category": "social psychology: crowds, conformity, persuasion, why we copy others",
+      "format": "psychology_effect",
+      "title": "Why You Fake Laugh in Groups 😳 #shorts #facts",
+      "fact": "Normative social influence leads people to fake agreement and laugh along with groups because the brain processes social rejection through neural pain pathways shared with physical injury."
+    },
+    {
+      "date": "2026-11-26T23:52:12",
+      "category": "emotions, mood and how people react when someone hurts them",
+      "format": "myth_vs_truth",
+      "title": "The Dark Side of Forgiveness 🤫 #shorts #psychology",
+      "fact": "Forgiving a transgressor who has not made amends or taken responsibility lowers the victim's self-esteem and prolongs emotional distress through the doormat effect.",
+      "video_id": "7U5kRW2RIc8",
+      "channel": "Channel 3"
     }
   ]
 }
